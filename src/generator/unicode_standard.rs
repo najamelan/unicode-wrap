@@ -10,7 +10,7 @@ pub struct Xi;
 
 impl Generator for Xi
 {
-	fn opportunities( text: &str ) -> Vec< SplitPoint >
+	fn opportunities( &self, text: &str ) -> Vec< SplitPoint >
 	{
 		let result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
 		{
@@ -56,7 +56,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi::opportunities( &s )
+			  Xi.opportunities( &s )
 
 			, vec!
 			  [
@@ -74,7 +74,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi::opportunities( &s )
+			  Xi.opportunities( &s )
 
 			, vec!
 			  [
@@ -92,7 +92,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi::opportunities( &s )
+			  Xi.opportunities( &s )
 
 			, vec!
 			  [

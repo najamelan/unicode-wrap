@@ -54,21 +54,23 @@
 // Naja Melan
 
 
-extern crate hyphenation          ;
-extern crate unicode_width        ;
-extern crate unicode_segmentation ;
-extern crate xi_unicode           ;
+extern crate hyphenation                                ;
+extern crate unicode_width        as unicode_width_crate;
+extern crate unicode_segmentation                       ;
+extern crate xi_unicode                                 ;
 
 pub mod wrapper    ;
 pub mod generator  ;
 pub mod split_point;
 pub mod offset     ;
 pub mod util       ;
+pub mod ruler      ;
 
 
 pub use self::split_point::SplitPoint;
 pub use self::offset::ByteOffset;
 pub use self::offset::WidthOffset;
+pub use self::wrapper::Wrapper;
 
 
 
