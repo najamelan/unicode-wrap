@@ -1,0 +1,13 @@
+[package]
+
+	name    = "unicode-wrap"
+	version = "0.1.0"
+	authors = [ "Naja Melan <najamelan@autistici.org>" ]
+
+[dependencies]
+
+	lazy_static          = "*"
+	hyphenation          = "*"
+	unicode-width        = "*"
+	unicode-segmentation = "*"
+	xi-unicode           = "*"
