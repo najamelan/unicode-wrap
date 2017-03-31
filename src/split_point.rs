@@ -1,16 +1,16 @@
 use std::cmp::Ordering;
-use std::ops::Range;
 
-use super::offset::ByteOffset;
+use super::ByteOffset;
 
 
 #[ derive( Eq, Clone, Debug ) ]
 //
 pub struct SplitPoint<'a>
 {
-	pub span     : Range < ByteOffset > ,
-	pub glue     : &'a str              ,
-	pub mandatory: bool                 ,
+	pub start    : ByteOffset,
+	pub end      : ByteOffset,
+	pub glue     : &'a str   ,
+	pub mandatory: bool      ,
 }
 
 
@@ -19,14 +19,14 @@ impl<'a> Ord for SplitPoint<'a>
 {
 	fn cmp( &self, other: &Self ) -> Ordering
 	{
-		if self.span.start.cmp( &other.span.start ) == Ordering::Equal
+		if self.start.cmp( &other.start ) == Ordering::Equal
 		{
-			self.span.end.cmp( &other.span.end )
+			self.end.cmp( &other.end )
 		}
 
 		else
 		{
-			self.span.start.cmp( &other.span.start )
+			self.start.cmp( &other.start )
 		}
 	}
 }
@@ -47,6 +47,6 @@ impl<'a> PartialEq for SplitPoint<'a>
 {
 	fn eq( &self, other: &Self ) -> bool
 	{
-		self.span == other.span
+		self.start == other.start && self.end == other.end
 	}
 }

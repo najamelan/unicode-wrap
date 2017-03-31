@@ -1,10 +1,12 @@
 use xi_unicode::LineBreakIterator;
 
-use super::interface::Generator;
-use super::SplitPoint;
-use super::ByteOffset;
+use super::*;
+
+use self::interface::Generator;
 
 pub struct Xi;
+
+
 
 impl Generator for Xi
 {
@@ -12,7 +14,17 @@ impl Generator for Xi
 	{
 		let result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
 		{
-			SplitPoint { span: ByteOffset( byte_offset )..ByteOffset( byte_offset ), glue: "", mandatory: hard }
+			let mut start = byte_offset;
+
+			// This only works if whitespace are bytes that are never composed in grapheme clusters.
+			// TODO: verify if this holds
+			//
+			for ( i, _ ) in text[ ..byte_offset ].char_indices().rev().take_while( | &( _, c ) | util::char_is_whitespace( &c ) ).last()
+			{
+				start = i;
+			}
+
+			SplitPoint { start: ByteOffset( start ), end: ByteOffset( byte_offset ), glue: "", mandatory: hard }
 		})
 
 		.collect::< Vec<SplitPoint> >();
@@ -40,14 +52,51 @@ mod tests
 	#[test]
 	fn basic()
 	{
+		let s = "foo bar";
+
 		assert_eq!
 		(
-			  Xi::opportunities( "foo bar" )
+			  Xi::opportunities( &s )
 
 			, vec!
 			  [
-				    SplitPoint { span: ByteOffset( 4 ) .. ByteOffset( 4 ), glue: "", mandatory: false }
-				  , SplitPoint { span: ByteOffset( 7 ) .. ByteOffset( 7 ), glue: "", mandatory: true  }
+				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 4       ), glue: "", mandatory: false }
+				  , SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
+			  ]
+		);
+	}
+
+
+	#[test]
+	fn more_spaces()
+	{
+		let s = "foo   bar";
+
+		assert_eq!
+		(
+			  Xi::opportunities( &s )
+
+			, vec!
+			  [
+				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 6       ), glue: "", mandatory: false }
+				  , SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
+			  ]
+		);
+	}
+
+
+	#[test]
+	fn no_break_space()
+	{
+		let s = "foo\u{A0}bar";
+
+		assert_eq!
+		(
+			  Xi::opportunities( &s )
+
+			, vec!
+			  [
+				  SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
 			  ]
 		);
 	}

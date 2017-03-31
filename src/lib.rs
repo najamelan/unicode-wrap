@@ -63,6 +63,7 @@ pub mod wrapper    ;
 pub mod generator  ;
 pub mod split_point;
 pub mod offset     ;
+pub mod util       ;
 
 
 pub use self::split_point::SplitPoint;
@@ -71,9 +72,9 @@ pub use self::offset::WidthOffset;
 
 
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     #[test]
+//     fn it_works() {
+//     }
+// }
