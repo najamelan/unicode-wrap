@@ -17,7 +17,6 @@ impl Generate for Xi
 	{
 		let mut result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
 		{
-			println!("break from Xi: {:?}", byte_offset );
 			let mut start = byte_offset;
 
 			// This only works if whitespace are bytes that are never composed in grapheme clusters.
@@ -28,6 +27,7 @@ impl Generate for Xi
 				start = i;
 			}
 
+			println!("break from Xi: {:?}-{:?}", start, byte_offset );
 			let mut s = SplitPoint::new( start, byte_offset, self.priority );
 			s.mandatory = hard;
 			s

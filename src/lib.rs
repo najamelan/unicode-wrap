@@ -61,6 +61,7 @@ extern crate xi_unicode                                 ;
 
 pub mod wrapper    ;
 pub mod generator  ;
+pub mod filter     ;
 pub mod split_point;
 pub mod offset     ;
 pub mod util       ;

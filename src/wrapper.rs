@@ -6,19 +6,21 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use super::*;
 
-use generator::Generate;
-use ruler    ::TextWidth;
+use generator::Generate  ;
+use filter   ::Filter    ;
+use ruler    ::TextWidth ;
 
 
-pub struct Wrapper<'a, Ruler>
+pub struct Wrapper<'a, 'b, Ruler>
 {
 	pub width     : usize               ,
 	pub generators: Vec< &'a Generate > ,
+	pub filters   : Vec< &'b Filter   > ,
 	pub ruler     : Ruler               ,
 }
 
 
-impl<'a, Ruler> Wrapper<'a, Ruler>
+impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 
 	where Ruler: TextWidth
 {
@@ -72,12 +74,22 @@ impl<'a, Ruler> Wrapper<'a, Ruler>
 			}
 		}
 
+
+		// Let filters do their work on the splits
+		//
+		for filter in &self.filters
+		{
+			filter.run( line, &mut splits );
+		}
+
+
 		// Sort the split points
 		// SplitPoints will be sorted on a score calculated by adding the start offset in bytes to the priority.
 		// This means that for a certain set of splitpoints, for which width + glue.width are within desired width, the
 		// splitpoint with the highest score will appear last in the vector.
 		//
 		splits.sort();
+
 
 		println!("Available splits:");
 
@@ -132,7 +144,9 @@ impl<'a, Ruler> Wrapper<'a, Ruler>
 				//
 				if split.width.unwrap() <= endl
 				{
-					if split.mandatory
+					if !split.enabled { continue }
+
+					else if split.mandatory
 					{
 						found = Some( split );
 						break;
@@ -233,6 +247,7 @@ mod tests
 			width     : width        ,
 			generators: vec![ &gen ] ,
 			ruler     : UnicodeWidth ,
+			filters   : Vec::new()   ,
 		};
 
 		wrapper.wrap_line( string )
@@ -334,6 +349,12 @@ mod tests
 		assert_eq!( xi( "foo   ssss bars", 4, 1 ), vec![ "foo", "ssss", "bars" ] );
 	}
 
+	#[test] #[should_panic]
+	fn dont_break_before_punctuation()
+	{
+		xi( "a ! b : c ? d", 2, 0 );
+	}
+
 
 	#[test]
 	fn hyphens()
@@ -354,6 +375,7 @@ mod tests
 			width     : width        ,
 			generators: vec![ &gen ] ,
 			ruler     : UnicodeWidth ,
+			filters   : Vec::new()   ,
 		};
 
 		wrapper.wrap_line( string )
@@ -391,6 +413,7 @@ mod tests
 			width     : width              ,
 			generators: vec![ &hyph, &xi ] ,
 			ruler     : UnicodeWidth       ,
+			filters   : Vec::new()         ,
 		};
 
 		let normal = wrapper.wrap_line( string );
@@ -400,6 +423,7 @@ mod tests
 			width     : width              ,
 			generators: vec![ &xi, &hyph ] ,
 			ruler     : UnicodeWidth       ,
+			filters   : Vec::new()         ,
 		};
 
 		let reversed = reverse.wrap_line( string );
@@ -423,4 +447,48 @@ mod tests
 		assert_eq!( combine( "the hyphenation is key", 7, 0, 4 ), vec![ "the"    , "hyphen-", "ation", "is key" ] );
 	}
 
+
+	//---------------------------------
+	// Combining Generators and filters
+	//
+	fn combine_filter( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Vec< String >
+	{
+		let c       = hyphenation_crate::load( Language::English_US ).unwrap();
+		let hyph    = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-".to_string() };
+
+		let xi      = Xi{ priority: xi_prio };
+
+		let french  = filter::french::French;
+
+		let wrapper = Wrapper
+		{
+			width     : width              ,
+			generators: vec![ &hyph, &xi ] ,
+			ruler     : UnicodeWidth       ,
+			filters   : vec![ &french ]    ,
+		};
+
+		let normal = wrapper.wrap_line( string );
+
+		let reverse = Wrapper
+		{
+			width     : width              ,
+			generators: vec![ &xi, &hyph ] ,
+			ruler     : UnicodeWidth       ,
+			filters   : vec![ &french ]    ,
+		};
+
+		let reversed = reverse.wrap_line( string );
+
+		assert_eq!( normal, reversed );
+
+		normal
+	}
+
+	#[test]
+	fn married_with_filters()
+	{
+		assert_eq!( combine       ( "hyphenation « is k »", 7, 0, 0 ), vec![ "hyphen-", "ation «", "is k »"    ] );
+		assert_eq!( combine_filter( "hyphenation « is k »", 7, 0, 0 ), vec![ "hyphen-", "ation", "« is", "k »" ] );
+	}
 }

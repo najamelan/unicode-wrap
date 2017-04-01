@@ -13,6 +13,7 @@ pub struct SplitPoint
 	pub mandatory: bool                  ,
 	pub priority : usize                 ,
 	pub width    : Option< WidthOffset > ,
+	pub enabled  : bool                  ,
 }
 
 
@@ -34,6 +35,7 @@ impl SplitPoint
 			priority : priority           ,
 			glue     : "".to_string()     ,
 			mandatory: false              ,
+			enabled  : true               ,
 			width    : None               ,
 		}
 	}
