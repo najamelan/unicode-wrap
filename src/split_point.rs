@@ -19,6 +19,26 @@ pub struct SplitPoint<'a>
 
 impl<'a> SplitPoint<'a>
 {
+	pub fn new
+	(
+		start    : usize,
+		end      : usize,
+		priority : usize,
+
+	)  -> SplitPoint<'a>
+	{
+		SplitPoint
+		{
+			start    : ByteOffset( start ),
+			end      : ByteOffset( end   ),
+			priority : priority           ,
+			glue     : ""                 ,
+			mandatory: false              ,
+			width    : None               ,
+		}
+	}
+
+
 	pub fn score( &self ) -> usize
 	{
 		if self.width.is_none() {

@@ -22,7 +22,9 @@ impl<'a, 'b> Generate for Hyphenator<'a, 'b>
 		{
 			println!("break from Hyphenator: {:?}", byte_offset );
 
-			SplitPoint { start: ByteOffset( *byte_offset ), end: ByteOffset( *byte_offset ), glue: self.glue, mandatory: false, width: None, priority: self.priority }
+			let mut s = SplitPoint::new( *byte_offset, *byte_offset, self.priority );
+			s.glue = self.glue;
+			s
 		})
 
 		.collect::< Vec<_> >();
@@ -45,15 +47,14 @@ mod tests
 		let s = "hyphenation";
 		let c = hyphenation_crate::load( Language::English_US ).unwrap();
 
+		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-";
+		let mut s2 = SplitPoint::new( 6, 6, 0 ); s2.glue = "-";
+
 		assert_eq!
 		(
 			  Hyphenator{ priority: 0, glue: "-", corpus: &c }.opportunities( &s )
 
-			, vec!
-			  [
-				  SplitPoint { start: ByteOffset(2), end: ByteOffset(2), glue: "-", mandatory: false, priority: 0, width: None } ,
-				  SplitPoint { start: ByteOffset(6), end: ByteOffset(6), glue: "-", mandatory: false, priority: 0, width: None } ,
-			  ]
+			, vec![ s1, s2 ]
 		);
 	}
 
@@ -63,15 +64,14 @@ mod tests
 		let s = "hyphe nation";
 		let c = hyphenation_crate::load( Language::English_US ).unwrap();
 
+		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-";
+		let mut s2 = SplitPoint::new( 8, 8, 0 ); s2.glue = "-";
+
 		assert_eq!
 		(
 			  Hyphenator{ priority: 0, glue: "-", corpus: &c }.opportunities( &s )
 
-			, vec!
-			  [
-				  SplitPoint { start: ByteOffset(2), end: ByteOffset(2), glue: "-", mandatory: false, priority: 0, width: None } ,
-				  SplitPoint { start: ByteOffset(8), end: ByteOffset(8), glue: "-", mandatory: false, priority: 0, width: None } ,
-			  ]
+			, vec![ s1, s2 ]
 		);
 	}
 

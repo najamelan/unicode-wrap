@@ -28,7 +28,9 @@ impl Generate for Xi
 				start = i;
 			}
 
-			SplitPoint { start: ByteOffset( start ), end: ByteOffset( byte_offset ), glue: "", mandatory: hard, width: None, priority: self.priority }
+			let mut s = SplitPoint::new( start, byte_offset, self.priority );
+			s.mandatory = hard;
+			s
 		})
 
 		.collect::< Vec<_> >();
@@ -74,10 +76,7 @@ mod tests
 		(
 			  Xi{ priority: 0 }.opportunities( &s )
 
-			, vec!
-			  [
-				    SplitPoint { start: ByteOffset( 3 ), end: ByteOffset( 4 ), glue: "", mandatory: false, priority: 0, width: None }
-			  ]
+			, vec![ SplitPoint::new( 3, 4, 0 ) ]
 		);
 	}
 
@@ -91,10 +90,7 @@ mod tests
 		(
 			  Xi{ priority: 0 }.opportunities( &s )
 
-			, vec!
-			  [
-				    SplitPoint { start: ByteOffset( 3 ), end: ByteOffset( 6 ), glue: "", mandatory: false, priority: 0, width: None }
-			  ]
+			, vec![ SplitPoint::new( 3, 6, 0 ) ]
 		);
 	}
 
@@ -122,10 +118,7 @@ mod tests
 		(
 			  Xi{ priority: 0 }.opportunities( &s )
 
-			  , vec!
-			    [
-			  	    SplitPoint { start: ByteOffset( 3 ), end: ByteOffset( 4 ), glue: "", mandatory: false, priority: 0, width: None }
-			    ]
+			, vec![ SplitPoint::new( 3, 4, 0 ) ]
 		);
 	}
 
@@ -143,9 +136,9 @@ mod tests
 
 			, vec!
 			  [
-				  SplitPoint { start: ByteOffset( 4  ), end: ByteOffset( 4  ), glue: "", mandatory: false, priority: 0, width: None } ,
-				  SplitPoint { start: ByteOffset( 7  ), end: ByteOffset( 7  ), glue: "", mandatory: false, priority: 0, width: None } ,
-				  SplitPoint { start: ByteOffset( 12 ), end: ByteOffset( 12 ), glue: "", mandatory: false, priority: 0, width: None } ,
+				  SplitPoint::new(  4,  4, 0 ) ,
+				  SplitPoint::new(  7,  7, 0 ) ,
+				  SplitPoint::new( 12, 12, 0 ) ,
 			  ]
 		);
 	}
@@ -162,10 +155,7 @@ mod tests
 		(
 			  Xi{ priority: 0 }.opportunities( &s )
 
-			, vec!
-			  [
-				  SplitPoint { start: ByteOffset( 5 ), end: ByteOffset( 5 ), glue: "", mandatory: false, priority: 0, width: None }
-			  ]
+			, vec![ SplitPoint::new( 5, 5, 0 ) ]
 		);
 	}
 
