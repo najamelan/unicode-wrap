@@ -1,5 +1,5 @@
 use super::*;
-use self::interface::TextWidth;
+use self::TextWidth;
 use self::unicode_width_crate::UnicodeWidthStr;
 
 pub struct UnicodeWidth;

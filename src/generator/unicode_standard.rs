@@ -2,7 +2,7 @@ use xi_unicode::LineBreakIterator;
 
 use super::*;
 
-use self::interface::Generator;
+use self::Generate;
 
 pub struct Xi
 {
@@ -11,7 +11,7 @@ pub struct Xi
 
 
 
-impl Generator for Xi
+impl Generate for Xi
 {
 	fn opportunities( &self, text: &str ) -> Vec< SplitPoint >
 	{

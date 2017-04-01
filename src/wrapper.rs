@@ -6,15 +6,15 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use super::*;
 
-use generator::interface::Generator;
-use ruler    ::interface::TextWidth;
+use generator::Generate;
+use ruler    ::TextWidth;
 
 
 pub struct Wrapper<'a, Ruler>
 {
-	pub width     : usize                ,
-	pub generators: Vec< &'a Generator > ,
-	pub ruler     : Ruler                ,
+	pub width     : usize               ,
+	pub generators: Vec< &'a Generate > ,
+	pub ruler     : Ruler               ,
 }
 
 
@@ -216,19 +216,17 @@ mod tests
 	use super::*;
 
 	use generator::unicode_standard::Xi;
-	use generator::interface::Generator;
-
+	use ruler::unicode_width::UnicodeWidth;
 
 	fn xi( string: &str, width: usize ) -> Vec< String >
 	{
-		let gen  = Xi{ priority: 1 };
-		let gens = vec![ &gen as &Generator ];
+		let gen     = Xi{ priority: 1 };
 
 		let wrapper = Wrapper
 		{
-			width     : width                             ,
-			generators: gens                              ,
-			ruler     : ruler::unicode_width::UnicodeWidth,
+			width     : width        ,
+			generators: vec![ &gen ] ,
+			ruler     : UnicodeWidth ,
 		};
 
 		wrapper.wrap_line( string )
