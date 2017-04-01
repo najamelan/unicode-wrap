@@ -4,7 +4,10 @@ use super::*;
 
 use self::interface::Generator;
 
-pub struct Xi;
+pub struct Xi
+{
+	pub priority: usize
+}
 
 
 
@@ -12,7 +15,7 @@ impl Generator for Xi
 {
 	fn opportunities( &self, text: &str ) -> Vec< SplitPoint >
 	{
-		let result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
+		let mut result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
 		{
 			let mut start = byte_offset;
 
@@ -24,19 +27,18 @@ impl Generator for Xi
 				start = i;
 			}
 
-			SplitPoint { start: ByteOffset( start ), end: ByteOffset( byte_offset ), glue: "", mandatory: hard }
+			SplitPoint { start: ByteOffset( start ), end: ByteOffset( byte_offset ), glue: "", mandatory: hard, width: None, priority: self.priority }
 		})
 
-		.collect::< Vec<SplitPoint> >();
+		.collect::< Vec<_> >();
 
-		// xi adds a SplitPoint at the end of the string, and we don't want that. It's not useful for a wrap algorithm, so
-		// we remove it. Actually, for now, this split point will never serve because either the whole rest of the string
-		// fits in a line, or if it doesn't this splitpoint wont fit either, so it will be ignored. So for now I comment this code.
+		// xi adds a SplitPoint at the end of the string, and we don't want that. It's not useful for a wrap algorithm and might cause
+		// wrap to return empty strings at the end, so we remove it.
 		//
-		// assert_eq!( ByteOffset( text.len() ), result.last().unwrap().span.start );
-		// assert_eq!( ByteOffset( text.len() ), result.last().unwrap().span.end   );
+		assert_eq!( ByteOffset( text.len() ), result.last().unwrap().start );
+		assert_eq!( ByteOffset( text.len() ), result.last().unwrap().end   );
 
-		// result.pop();
+		result.pop();
 
 		result
 	}
@@ -56,12 +58,11 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi.opportunities( &s )
+			  Xi{ priority: 0 }.opportunities( &s )
 
 			, vec!
 			  [
-				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 4       ), glue: "", mandatory: false }
-				  , SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
+				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 4       ), glue: "", mandatory: false, priority: 0, width: None }
 			  ]
 		);
 	}
@@ -74,12 +75,11 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi.opportunities( &s )
+			  Xi{ priority: 0 }.opportunities( &s )
 
 			, vec!
 			  [
-				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 6       ), glue: "", mandatory: false }
-				  , SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
+				    SplitPoint { start: ByteOffset( 3       ), end: ByteOffset( 6       ), glue: "", mandatory: false, priority: 0, width: None }
 			  ]
 		);
 	}
@@ -92,11 +92,10 @@ mod tests
 
 		assert_eq!
 		(
-			  Xi.opportunities( &s )
+			  Xi{ priority: 0 }.opportunities( &s )
 
 			, vec!
 			  [
-				  SplitPoint { start: ByteOffset( s.len() ), end: ByteOffset( s.len() ), glue: "", mandatory: true  }
 			  ]
 		);
 	}
