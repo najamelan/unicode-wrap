@@ -3,16 +3,16 @@ use super::*;
 
 use self::Generate;
 
-pub struct Hyphenator<'a, 'b>
+pub struct Hyphenator<'a>
 {
 	pub priority: usize      ,
 	pub corpus  : &'a Corpus ,
-	pub glue    : &'b str    ,
+	pub glue    : String     ,
 }
 
 
 
-impl<'a, 'b> Generate for Hyphenator<'a, 'b>
+impl<'a> Generate for Hyphenator<'a>
 {
 	fn opportunities( &self, text: &str ) -> Vec< SplitPoint >
 	{
@@ -23,7 +23,7 @@ impl<'a, 'b> Generate for Hyphenator<'a, 'b>
 			println!("break from Hyphenator: {:?}", byte_offset );
 
 			let mut s = SplitPoint::new( *byte_offset, *byte_offset, self.priority );
-			s.glue = self.glue;
+			s.glue = self.glue.clone();
 			s
 		})
 
@@ -47,12 +47,12 @@ mod tests
 		let s = "hyphenation";
 		let c = hyphenation_crate::load( Language::English_US ).unwrap();
 
-		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-";
-		let mut s2 = SplitPoint::new( 6, 6, 0 ); s2.glue = "-";
+		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-".to_string();
+		let mut s2 = SplitPoint::new( 6, 6, 0 ); s2.glue = "-".to_string();
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-", corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
 
 			, vec![ s1, s2 ]
 		);
@@ -64,12 +64,12 @@ mod tests
 		let s = "hyphe nation";
 		let c = hyphenation_crate::load( Language::English_US ).unwrap();
 
-		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-";
-		let mut s2 = SplitPoint::new( 8, 8, 0 ); s2.glue = "-";
+		let mut s1 = SplitPoint::new( 2, 2, 0 ); s1.glue = "-".to_string();
+		let mut s2 = SplitPoint::new( 8, 8, 0 ); s2.glue = "-".to_string();
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-", corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
 
 			, vec![ s1, s2 ]
 		);
@@ -86,7 +86,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-", corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
 
 			, vec![]
 		);

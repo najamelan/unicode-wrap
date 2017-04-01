@@ -5,11 +5,11 @@ use super::*;
 
 #[ derive( Eq, Clone, Debug ) ]
 //
-pub struct SplitPoint<'a>
+pub struct SplitPoint
 {
 	pub start    : ByteOffset            ,
 	pub end      : ByteOffset            ,
-	pub glue     : &'a str               ,
+	pub glue     : String                ,
 	pub mandatory: bool                  ,
 	pub priority : usize                 ,
 	pub width    : Option< WidthOffset > ,
@@ -17,7 +17,7 @@ pub struct SplitPoint<'a>
 
 
 
-impl<'a> SplitPoint<'a>
+impl SplitPoint
 {
 	pub fn new
 	(
@@ -25,14 +25,14 @@ impl<'a> SplitPoint<'a>
 		end      : usize,
 		priority : usize,
 
-	)  -> SplitPoint<'a>
+	)  -> SplitPoint
 	{
 		SplitPoint
 		{
 			start    : ByteOffset( start ),
 			end      : ByteOffset( end   ),
 			priority : priority           ,
-			glue     : ""                 ,
+			glue     : "".to_string()     ,
 			mandatory: false              ,
 			width    : None               ,
 		}
@@ -52,7 +52,7 @@ impl<'a> SplitPoint<'a>
 
 
 
-impl<'a> Ord for SplitPoint<'a>
+impl Ord for SplitPoint
 {
 	fn cmp( &self, other: &Self ) -> Ordering
 	{
@@ -75,7 +75,7 @@ impl<'a> Ord for SplitPoint<'a>
 
 
 
-impl<'a> PartialOrd for SplitPoint<'a>
+impl PartialOrd for SplitPoint
 {
 	fn partial_cmp( &self, other: &Self ) -> Option< Ordering > {
 
@@ -85,7 +85,7 @@ impl<'a> PartialOrd for SplitPoint<'a>
 
 
 
-impl<'a> PartialEq for SplitPoint<'a>
+impl PartialEq for SplitPoint
 {
 	fn eq( &self, other: &Self ) -> bool {
 

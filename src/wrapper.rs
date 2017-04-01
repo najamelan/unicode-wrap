@@ -66,7 +66,7 @@ impl<'a, Ruler> Wrapper<'a, Ruler>
 			//
 			for mut split in generator.opportunities( line )
 			{
-				split.width = Some( split.start.to_width( &b2w ) + self.ruler.measure( split.glue ) );
+				split.width = Some( split.start.to_width( &b2w ) + self.ruler.measure( &split.glue ) );
 
 				splits.push( split );
 			}
@@ -189,7 +189,7 @@ impl<'a, Ruler> Wrapper<'a, Ruler>
 
 			let mut s = line[ start..cut.start.0 ].to_string();
 
-			s.push_str( cut.glue );
+			s.push_str( &cut.glue );
 
 			// We should never store empty strings, it might happen, check test: leadingspaces_blocking_split
 			//
@@ -347,7 +347,7 @@ mod tests
 	fn hyphenate( string: &str, width: usize ) -> Vec< String >
 	{
 		let c   = hyphenation_crate::load( Language::English_US ).unwrap();
-		let gen = Hyphenator{ priority: 1, corpus: &c, glue: "-" };
+		let gen = Hyphenator{ priority: 1, corpus: &c, glue: "-".to_string() };
 
 		let wrapper = Wrapper
 		{
@@ -382,7 +382,7 @@ mod tests
 	fn combine( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Vec< String >
 	{
 		let c    = hyphenation_crate::load( Language::English_US ).unwrap();
-		let hyph = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-" };
+		let hyph = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-".to_string() };
 
 		let xi   = Xi{ priority: xi_prio };
 
