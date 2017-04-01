@@ -130,6 +130,46 @@ mod tests
 	}
 
 
+	#[test]
+	fn hyphens()
+	{
+		// \u{ad} is Unicode U+00AD SOFT HYPHEN
+		//
+		let s = "co\u{ad}ca-co‧la";
+
+		assert_eq!
+		(
+			  Xi{ priority: 0 }.opportunities( &s )
+
+			, vec!
+			  [
+				  SplitPoint { start: ByteOffset( 4  ), end: ByteOffset( 4  ), glue: "", mandatory: false, priority: 0, width: None } ,
+				  SplitPoint { start: ByteOffset( 7  ), end: ByteOffset( 7  ), glue: "", mandatory: false, priority: 0, width: None } ,
+				  SplitPoint { start: ByteOffset( 12 ), end: ByteOffset( 12 ), glue: "", mandatory: false, priority: 0, width: None } ,
+			  ]
+		);
+	}
+
+
+	// I don't know if this is really desirable behaviour, but in the worst case splits like this can be prevented with a filter.
+	//
+	#[test]
+	fn hyphen_series()
+	{
+		let s = "bin--doo";
+
+		assert_eq!
+		(
+			  Xi{ priority: 0 }.opportunities( &s )
+
+			, vec!
+			  [
+				  SplitPoint { start: ByteOffset( 5 ), end: ByteOffset( 5 ), glue: "", mandatory: false, priority: 0, width: None }
+			  ]
+		);
+	}
+
+
 	// #[test]
 	// fn tabstop2()
 	// {

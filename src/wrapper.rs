@@ -125,7 +125,7 @@ impl<'a, Ruler> Wrapper<'a, Ruler>
 			//
 			for (i, split) in splits[ candidate.. ].iter().enumerate()
 			{
-				println!( "Considering: start: {:?}, end: {:?} with endl: {:?}", split.start.0, split.end.0, endl.0 );
+				println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score() );
 
 				// Byte to width conversions will round down, so we shouldn't use <= here. The last splitpoint, at the end of the string
 				// which we should never use, shall point to the width of the last character, since that is the last valid width.
@@ -215,12 +215,18 @@ mod tests
 {
 	use super::*;
 
-	use generator::unicode_standard::Xi;
-	use ruler::unicode_width::UnicodeWidth;
+	use generator::unicode_standard::Xi           ;
+	use generator::hyphenation     ::Hyphenator   ;
+	use hyphenation_crate          ::Language     ;
+	use ruler::unicode_width       ::UnicodeWidth ;
 
-	fn xi( string: &str, width: usize ) -> Vec< String >
+
+	//--------------------
+	// basic xi splitting
+	//
+	fn xi( string: &str, width: usize, prio: usize ) -> Vec< String >
 	{
-		let gen     = Xi{ priority: 1 };
+		let gen     = Xi{ priority: prio };
 
 		let wrapper = Wrapper
 		{
@@ -237,7 +243,21 @@ mod tests
 	#[test]
 	fn basic()
 	{
-		assert_eq!( xi( "ha ha ah", 3 ), vec![ "ha", "ha", "ah" ] );
+		assert_eq!( xi( "ha ha ah", 3, 1 ), vec![ "ha", "ha", "ah" ] );
+	}
+
+
+	#[test]
+	fn basic_zero_priority()
+	{
+		assert_eq!( xi( "ha ha ah", 3, 0 ), vec![ "ha", "ha", "ah" ] );
+	}
+
+
+	#[test]
+	fn basic_high_priority()
+	{
+		assert_eq!( xi( "ha ha ah", 3, 99999 ), vec![ "ha", "ha", "ah" ] );
 	}
 
 
@@ -245,7 +265,7 @@ mod tests
 	#[test]
 	fn consecutive_spaces()
 	{
-		assert_eq!( xi( "ha ha       ah", 3 ), vec![ "ha", "ha", "ah" ] );
+		assert_eq!( xi( "ha ha       ah", 3, 1 ), vec![ "ha", "ha", "ah" ] );
 	}
 
 
@@ -253,7 +273,7 @@ mod tests
 	#[test]
 	fn consecutive_spaces_and_tabs()
 	{
-		assert_eq!( xi( "ha ha   \t   ah", 3 ), vec![ "ha", "ha", "ah" ] );
+		assert_eq!( xi( "ha ha   \t   ah", 3, 1 ), vec![ "ha", "ha", "ah" ] );
 	}
 
 
@@ -261,15 +281,14 @@ mod tests
 	#[test]
 	fn nbsp()
 	{
-		println!("{:?}","foo b\u{A0}r baz" );
-		assert_eq!( xi( "foo b\u{A0}r baz", 6 ), vec![ "foo", "b\u{A0}r", "baz" ] );
+		assert_eq!( xi( "foo b\u{A0}r baz", 6, 1 ), vec![ "foo", "b\u{A0}r", "baz" ] );
 	}
 
 
 	#[test]
 	fn dont_split_every_space()
 	{
-		assert_eq!( xi( "foo bar baz fiend", 9 ), vec![ "foo bar", "baz fiend" ] );
+		assert_eq!( xi( "foo bar baz fiend", 9, 1 ), vec![ "foo bar", "baz fiend" ] );
 	}
 
 
@@ -277,41 +296,131 @@ mod tests
 	fn width_zero()
 	{
 		#![should_panic]
-		xi( "foo bar baz", 0 );
+		xi( "foo bar baz", 0, 1 );
 	}
 
 
 	#[test]
 	fn whitespace_should_not_be_squeezed()
 	{
-		assert_eq!( xi( "foo \t a bar", 7 ), vec![ "foo \t a", "bar" ] );
+		assert_eq!( xi( "foo \t a bar", 7, 1 ), vec![ "foo \t a", "bar" ] );
 	}
 
 
 	#[test]
 	fn whitespace_should_be_trimmed()
 	{
-		assert_eq!( xi( "foo \t  bar  ", 10 ), vec![ "foo \t  bar" ] );
+		assert_eq!( xi( "foo \t  bar  ", 10, 1 ), vec![ "foo \t  bar" ] );
 	}
 
 
 	#[test]
 	fn whitespace_should_not_be_trimmed_left_on_first_line()
 	{
-		assert_eq!( xi( " \tfoo \t  bar  ", 4 ), vec![ " \tfoo", "bar" ] );
+		assert_eq!( xi( " \tfoo \t  bar  ", 4, 1 ), vec![ " \tfoo", "bar" ] );
 	}
 
 
 	#[test]
 	fn leadingspaces_blocking_split()
 	{
-		assert_eq!( xi( " a b c", 1 ), vec![ "a", "b", "c" ] );
+		assert_eq!( xi( " a b c", 1, 1 ), vec![ "a", "b", "c" ] );
 	}
 
 
 	#[test]
 	fn whitespace_should_be_trimmed_on_every_line_yet_no_empty_strings_should_exist_in_output()
 	{
-		assert_eq!( xi( "foo   ssss bars", 4 ), vec![ "foo", "ssss", "bars" ] );
+		assert_eq!( xi( "foo   ssss bars", 4, 1 ), vec![ "foo", "ssss", "bars" ] );
 	}
+
+
+	#[test]
+	fn hyphens()
+	{
+		assert_eq!( xi( "co\u{ad}ca-co‧la", 3, 1 ), vec![ "co\u{ad}", "ca-", "co‧", "la" ] );
+	}
+
+	//-------------
+	// Hyphenation
+	//
+	fn hyphenate( string: &str, width: usize ) -> Vec< String >
+	{
+		let c   = hyphenation_crate::load( Language::English_US ).unwrap();
+		let gen = Hyphenator{ priority: 1, corpus: &c, glue: "-" };
+
+		let wrapper = Wrapper
+		{
+			width     : width        ,
+			generators: vec![ &gen ] ,
+			ruler     : UnicodeWidth ,
+		};
+
+		wrapper.wrap_line( string )
+	}
+
+
+	#[test]
+	fn hyphenation()
+	{
+		assert_eq!( hyphenate( "hyphenation", 7 ), vec![ "hyphen-", "ation"          ] );
+		assert_eq!( hyphenate( "hyphenation", 6 ), vec![ "hy-"    , "phen-", "ation" ] );
+		assert_eq!( hyphenate( "hyphenation", 5 ), vec![ "hy-"    , "phen-", "ation" ] );
+	}
+
+
+	#[test] #[should_panic]
+	fn too_short()
+	{
+		hyphenate( "hyphenation", 4 );
+	}
+
+
+	//----------------------
+	// Combining Generators
+	//
+	fn combine( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Vec< String >
+	{
+		let c    = hyphenation_crate::load( Language::English_US ).unwrap();
+		let hyph = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-" };
+
+		let xi   = Xi{ priority: xi_prio };
+
+		let wrapper = Wrapper
+		{
+			width     : width              ,
+			generators: vec![ &hyph, &xi ] ,
+			ruler     : UnicodeWidth       ,
+		};
+
+		let normal = wrapper.wrap_line( string );
+
+		let reverse = Wrapper
+		{
+			width     : width              ,
+			generators: vec![ &xi, &hyph ] ,
+			ruler     : UnicodeWidth       ,
+		};
+
+		let reversed = reverse.wrap_line( string );
+
+		assert_eq!( normal, reversed );
+
+		normal
+	}
+
+	#[test]
+	fn combine_generators_basic()
+	{
+		assert_eq!( combine( "hyphenation is key", 7, 0, 0 ), vec![ "hyphen-", "ation", "is key" ] );
+	}
+
+	#[test]
+	fn combine_priority()
+	{
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 0 ), vec![ "the hy-", "phen-"  , "ation", "is key" ] );
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 3 ), vec![ "the hy-", "phen-"  , "ation", "is key" ] );
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 4 ), vec![ "the"    , "hyphen-", "ation", "is key" ] );
+	}
+
 }

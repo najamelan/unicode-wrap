@@ -1,4 +1,5 @@
-pub mod unicode_standard;
+pub mod unicode_standard ;
+pub mod hyphenation      ;
 
 pub use super::*;
 

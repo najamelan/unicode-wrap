@@ -54,7 +54,7 @@
 // Naja Melan
 
 
-extern crate hyphenation                                ;
+extern crate hyphenation          as hyphenation_crate  ;
 extern crate unicode_width        as unicode_width_crate;
 extern crate unicode_segmentation                       ;
 extern crate xi_unicode                                 ;
