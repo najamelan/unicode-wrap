@@ -139,9 +139,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			{
 				if cfg!( debug_assertions ) { println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score() ) }
 
-				// Byte to width conversions will round down, so we shouldn't use <= here. The last splitpoint, at the end of the string
-				// which we should never use, shall point to the width of the last character, since that is the last valid width.
-				//
+
 				if split.width.unwrap() <= endl
 				{
 					if !split.enabled { continue }
@@ -149,6 +147,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 					else if split.mandatory
 					{
 						found = Some( split );
+						candidate += i + 1   ;
 						break;
 					}
 
@@ -156,13 +155,16 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 					{
 						found      = Some( split ) ;
 						last_score = split.score() ;
-						candidate  = i + 1         ;
 					}
 
 					else { continue }
 				}
 
-				else { break }
+				else
+				{
+					candidate += i;
+					break
+				}
 			}
 
 
