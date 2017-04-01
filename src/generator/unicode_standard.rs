@@ -27,7 +27,7 @@ impl Generate for Xi
 				start = i;
 			}
 
-			println!("break from Xi: {:?}-{:?}", start, byte_offset );
+			if cfg!( debug_assertions ) { println!("break from Xi: {:?}-{:?}", start, byte_offset ) }
 			let mut s = SplitPoint::new( start, byte_offset, self.priority );
 			s.mandatory = hard;
 			s
@@ -38,8 +38,7 @@ impl Generate for Xi
 		// xi adds a SplitPoint at the end of the string, and we don't want that. It's not useful for a wrap algorithm and might cause
 		// wrap to return empty strings at the end, so we remove it.
 		//
-		// assert_eq!( ByteOffset( text.len() ), result.last().unwrap().start );
-		assert_eq!( ByteOffset( text.len() ), result.last().unwrap().end   );
+		debug_assert!( ByteOffset( text.len() ) == result.last().unwrap().end );
 
 		result.pop();
 

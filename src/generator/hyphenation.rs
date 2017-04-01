@@ -20,7 +20,7 @@ impl<'a> Generate for Hyphenator<'a>
 
 		let result = list.iter().map( |byte_offset|
 		{
-			println!("break from Hyphenator: {:?}", byte_offset );
+			if cfg!( debug_assertions ) { println!("break from Hyphenator: {:?}", byte_offset ) }
 
 			let mut s = SplitPoint::new( *byte_offset, *byte_offset, self.priority );
 			s.glue = self.glue.clone();

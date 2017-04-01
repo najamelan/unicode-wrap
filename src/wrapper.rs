@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
-use std::io;
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -40,8 +38,8 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			b2w.insert( ByteOffset( bytes ), width                );
 			w2b.insert( width              , ByteOffset( bytes  ) );
 
-			println!( "byte: {:02?}, width: {:02?}, graph:{:?}", bytes, width.0, graph );
-			io::stdout().flush().ok().expect("Could not flush stdout");
+			if cfg!( debug_assertions ) { println!( "byte: {:02?}, width: {:02?}, graph:{:?}", bytes, width.0, graph ) }
+
 			width = width + self.ruler.measure( graph );
 		}
 
@@ -50,7 +48,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 		b2w.insert( ByteOffset( line.len() ), width                     );
 		w2b.insert( width                   , ByteOffset( line.len()  ) );
 
-		println!( "byte: {:02?}, width: {:02?}\n", line.len(), width.0 );
+		if cfg!( debug_assertions ) { println!( "byte: {:02?}, width: {:02?}\n", line.len(), width.0 ) }
 
 
 		let line_width = width ;
@@ -90,15 +88,17 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 		//
 		splits.sort();
 
-
-		println!("Available splits:");
-
-		for split in & splits
+		if cfg!( debug_assertions )
 		{
-			println!( "start: {:?}, end: {:?}", split.start.0, split.end.0 );
-		}
+			println!("Available splits:");
 
-		println!("");
+			for split in & splits
+			{
+				println!( "start: {:?}, end: {:?}", split.start.0, split.end.0 );
+			}
+
+			println!("");
+		}
 
 
 		// Choose which split points we will actually use
@@ -127,7 +127,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			//
 			if endl >= line_width { break }
 
-			println!("width_offset: {:?}, endl: {:?}, line_width: {:?}", width_offset.0, endl.0, line_width.0 );
+			if cfg!( debug_assertions ) { println!("width_offset: {:?}, endl: {:?}, line_width: {:?}", width_offset.0, endl.0, line_width.0 ) }
 
 
 			let mut found: Option< &SplitPoint > = None ;
@@ -137,7 +137,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			//
 			for (i, split) in splits[ candidate.. ].iter().enumerate()
 			{
-				println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score() );
+				if cfg!( debug_assertions ) { println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score() ) }
 
 				// Byte to width conversions will round down, so we shouldn't use <= here. The last splitpoint, at the end of the string
 				// which we should never use, shall point to the width of the last character, since that is the last valid width.
@@ -170,7 +170,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			{
 				let split = found.unwrap();
 
-				println!("Found: {:?}, {:?}", split.start, split.end );
+				if cfg!( debug_assertions ) { println!("Found: {:?}, {:?}", split.start, split.end ); }
 
 				width_offset = split.end.to_width( &b2w );
 				cuts.push( split )
@@ -185,11 +185,15 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 		}
 
 
-		for c in &cuts
+		if cfg!( debug_assertions )
 		{
-			println!( "{:?}", c );
+			for c in &cuts
+			{
+				println!( "{:?}", c );
+			}
+			println!("");
 		}
-		println!("");
+
 
 		let mut out       = Vec::with_capacity( cuts.len() + 1 );
 		let mut start     = 0;
@@ -199,7 +203,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			// We should never try to cut at the end of the string, but it happens.
 			// After some time, this can be commented out.
 			//
-			assert_ne!( cut.start.0, line.len() );
+			debug_assert!( cut.start.0 != line.len() );
 
 			let mut s = line[ start..cut.start.0 ].to_string();
 
