@@ -3,6 +3,7 @@
 const WHITESPACE: &'static [char] = &
 [
 	'\u{000C}' , // FORM FEED (FF)
+	'\u{0009}' , // TAB STOP
 	'\u{0020}' , // SPACE
 	'\u{1680}' , // OGHAM SPACE MARK
 	'\u{2000}' , // EN QUAD
