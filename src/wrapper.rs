@@ -225,6 +225,25 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 		out
 
 	}
+
+
+	pub fn wrap( &self, input: &str ) -> Vec< String >
+	{
+		let mut out = Vec::new();
+
+		for line in input.lines()
+		{
+			out.append( &mut self.wrap_line( line ) );
+		}
+
+		out
+	}
+
+
+	pub fn fill( &self, input: &str ) -> String
+	{
+		self.wrap( input ).join( "\n" )
+	}
 }
 
 
@@ -497,4 +516,41 @@ mod tests
 		assert_eq!( combine       ( "hyphenation « is k »", 7, 0, 0 ), vec![ "hyphen-", "ation «", "is k »"    ] );
 		assert_eq!( combine_filter( "hyphenation « is k »", 7, 0, 0 ), vec![ "hyphen-", "ation", "« is", "k »" ] );
 	}
+
+
+	// fn lorem_ipsum(length: usize) -> &'static str {
+	//     let text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas feugiat non mi \
+	//                 rutrum consectetur. Nulla iaculis luctus ex suscipit posuere. Sed et tellus quis \
+	//                 elit volutpat pretium. Sed faucibus purus vitae feugiat tincidunt. Nulla \
+	//                 malesuada interdum tempus. Proin consectetur malesuada magna, id suscipit enim \
+	//                 tempus in. Sed sollicitudin velit tortor, quis condimentum nisl vulputate \
+	//                 lobortis. Curabitur id lectus arcu. Nullam quis aliquam nisi. Vestibulum quam \
+	//                 enim, elementum vel urna scelerisque, ultricies cursus urna. Mauris vestibulum, \
+	//                 augue non posuere viverra, risus tortor iaculis augue, eget convallis metus nisl \
+	//                 vestibulum nisi. Aenean auctor dui vel aliquet sagittis. Aliquam quis enim \
+	//                 mauris. Nunc eu leo et orci euismod bibendum vel eu tortor. Nam egestas volutpat \
+	//                 ex, a turpis duis.";
+	//     text.split_at(length).0
+	// }
+
+
+	// #[test]
+	// fn bench_test()
+	// {
+	//     let c    = hyphenation_crate::load( Language::Latin ).unwrap();
+	//     let hyph = Hyphenator{ priority: 0, corpus: &c, glue: "-".to_string() };
+	//     let xi   = Xi{ priority: 0 };
+	//     let w    = Wrapper
+	//     {
+	//         width     : 60                 ,
+	//         generators: vec![ &hyph, &xi ] ,
+	//         ruler     : UnicodeWidth       ,
+	//         filters   : vec![]             ,
+	//     };
+
+	//     let text = lorem_ipsum( 800 );
+
+	//     assert_eq!( w.fill( text ), String::new() );
+	// }
+
 }
