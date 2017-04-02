@@ -68,10 +68,13 @@ pub mod util       ;
 pub mod ruler      ;
 
 
-pub use self::split_point::SplitPoint;
-pub use self::offset::ByteOffset;
-pub use self::offset::WidthOffset;
-pub use self::wrapper::Wrapper;
+pub use split_point :: SplitPoint  ;
+pub use offset      :: ByteOffset  ;
+pub use offset      :: WidthOffset ;
+pub use wrapper     :: Wrapper     ;
+pub use ruler       :: TextWidth   ;
+pub use generator   :: Generate    ;
+pub use filter      :: Filter      ;
 
 
 

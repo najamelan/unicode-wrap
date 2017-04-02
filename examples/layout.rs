@@ -1,13 +1,15 @@
 
 
-extern crate hyphenation as hyphenation_crate;
+extern crate hyphenation as hyphenation;
 extern crate unicode_wrap;
 
-use hyphenation_crate::Language;
+use hyphenation::Language;
+
 use unicode_wrap::Wrapper;
-use unicode_wrap::generator::hyphenation::Hyphenator;
-use unicode_wrap::generator::unicode_standard::Xi;
-use unicode_wrap::ruler::unicode_width::UnicodeWidth;
+
+use unicode_wrap :: generator :: unicode_standard :: Xi           ;
+use unicode_wrap :: generator :: hyphenation      :: Hyphenator   ;
+use unicode_wrap :: ruler     :: unicode_width    :: UnicodeWidth ;
 
 fn main()
 {
@@ -19,7 +21,7 @@ Zero-cost abstractions.\
 
 	let mut prev_lines = vec![];
 
-	let c       = hyphenation_crate::load( Language::English_US ).unwrap();
+	let c       = hyphenation::load( Language::English_US ).unwrap();
 	let hyph    = Hyphenator{ priority: 0, corpus: &c, glue: "-".to_string() };
 
 	let xi      = Xi{ priority: 0 };

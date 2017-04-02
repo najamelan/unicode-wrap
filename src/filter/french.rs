@@ -44,7 +44,6 @@ impl Filter for French
 mod tests
 {
 	use super::*;
-	use generator::Generate;
 	use generator::unicode_standard::Xi;
 
 	fn filter( text: &str ) -> Vec< SplitPoint >

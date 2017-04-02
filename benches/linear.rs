@@ -8,11 +8,12 @@ extern crate hyphenation as hyphenation_crate;
 extern crate unicode_wrap;
 
 use hyphenation_crate::Language;
-use unicode_wrap::Wrapper;
-use unicode_wrap::generator::Generate;
-use unicode_wrap::generator::hyphenation::Hyphenator;
-use unicode_wrap::generator::unicode_standard::Xi;
-use unicode_wrap::ruler::unicode_width::UnicodeWidth;
+
+use unicode_wrap::*;
+
+use generator :: hyphenation      :: Hyphenator   ;
+use generator :: unicode_standard :: Xi           ;
+use ruler     :: unicode_width    :: UnicodeWidth ;
 
 use test::Bencher;
 

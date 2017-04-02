@@ -4,10 +4,6 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use super::*;
 
-use generator::Generate  ;
-use filter   ::Filter    ;
-use ruler    ::TextWidth ;
-
 
 pub struct Wrapper<'a, 'b, Ruler>
 {
