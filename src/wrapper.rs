@@ -18,12 +18,9 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 
 	where Ruler: TextWidth
 {
-	pub fn wrap( &self, input: &str ) -> String
-	{
-		// TODO: does this trim a trailing newline?
-		//
-		let line = input.trim_right();
 
+	pub fn wrap( &self, line: &str ) -> String
+	{
 		// store byte to width conversion, because we will need to calculate our breakpoint in terms of display width.
 		//
 		let mut b2w: HashMap < ByteOffset , WidthOffset > = HashMap::with_capacity( line.len() );
@@ -325,16 +322,9 @@ mod tests
 
 
 	#[test]
-	fn whitespace_should_be_trimmed()
-	{
-		assert_eq!( xi( "foo \t  bar  ", 10, 1 ), "foo \t  bar" );
-	}
-
-
-	#[test]
 	fn whitespace_should_not_be_trimmed_left_on_first_line()
 	{
-		assert_eq!( xi( " \tfoo \t  bar  ", 4, 1 ), " \tfoo\nbar" );
+		assert_eq!( xi( " \tfoo \t  bar  ", 4, 1 ), " \tfoo\nbar\n  " );
 	}
 
 
@@ -362,6 +352,20 @@ mod tests
 	fn hyphens()
 	{
 		assert_eq!( xi( "co\u{ad}ca-co‧la", 3, 1 ), "co\u{ad}\nca-\nco‧\nla" );
+	}
+
+
+	#[test]
+	fn newlines_should_not_be_dropped()
+	{
+		assert_eq!( xi( "co\n\n\nla", 3, 1 ), "co\n\n\nla" );
+	}
+
+
+	#[test]
+	fn leading_and_trailing_newlines_should_not_be_dropped()
+	{
+		assert_eq!( xi( "\ncola\n", 4, 1 ), "\ncola\n" );
 	}
 
 	//-------------
