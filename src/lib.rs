@@ -62,19 +62,19 @@ extern crate xi_unicode                                 ;
 pub mod wrapper    ;
 pub mod generator  ;
 pub mod filter     ;
-pub mod split_point;
+pub mod splitpoint ;
 pub mod offset     ;
 pub mod util       ;
 pub mod ruler      ;
 
 
-pub use split_point :: SplitPoint  ;
-pub use offset      :: ByteOffset  ;
-pub use offset      :: WidthOffset ;
-pub use wrapper     :: Wrapper     ;
-pub use ruler       :: TextWidth   ;
-pub use generator   :: Generate    ;
-pub use filter      :: Filter      ;
+pub use splitpoint :: SplitPoint  ;
+pub use offset     :: ByteOffset  ;
+pub use offset     :: WidthOffset ;
+pub use wrapper    :: Wrapper     ;
+pub use ruler      :: TextWidth   ;
+pub use generator  :: Generate    ;
+pub use filter     :: Filter      ;
 
 
 

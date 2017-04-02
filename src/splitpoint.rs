@@ -41,6 +41,9 @@ impl SplitPoint
 	}
 
 
+	// We substract the width of the glue, so that if two splitpoints would otherwise have the same score,
+	// the one that doesn't need eg. hyphens wins.
+	//
 	pub fn score< Ruler: TextWidth >( &self, ruler: &Ruler ) -> WidthOffset
 	{
 		if self.width.is_none() {
@@ -99,7 +102,6 @@ impl PartialEq for SplitPoint
 		self.mandatory == other.mandatory &&
 		self.width     == other.width
 	}
-
 }
 
 
