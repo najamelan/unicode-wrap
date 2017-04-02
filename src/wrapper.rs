@@ -468,6 +468,19 @@ mod tests
 		assert_eq!( combine( "the hyphenation is key", 7, 0, 4 ), vec![ "the"    , "hyphen-", "ation", "is key" ] );
 	}
 
+// 	#[test]
+// 	fn multiline_to_wrapline()
+// 	{
+// 		let example = "Memory
+// safety";
+
+// 		println!("{:?}", example );
+
+// 		// assert!( false );
+
+// 		assert_eq!( combine( example, 15, 0, 0 ), vec![ "" ] );
+// 	}
+
 
 	//---------------------------------
 	// Combining Generators and filters

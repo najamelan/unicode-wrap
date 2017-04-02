@@ -71,12 +71,7 @@ mod tests
 	{
 		let s = "foo bar";
 
-		assert_eq!
-		(
-			  Xi{ priority: 0 }.opportunities( &s )
-
-			, vec![ SplitPoint::new( 3, 4, 0 ) ]
-		);
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 4, 0 ) ] );
 	}
 
 
@@ -85,12 +80,7 @@ mod tests
 	{
 		let s = "foo   bar";
 
-		assert_eq!
-		(
-			  Xi{ priority: 0 }.opportunities( &s )
-
-			, vec![ SplitPoint::new( 3, 6, 0 ) ]
-		);
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 6, 0 ) ] );
 	}
 
 
@@ -99,12 +89,7 @@ mod tests
 	{
 		let s = "foo\u{A0}bar";
 
-		assert_eq!
-		(
-			  Xi{ priority: 0 }.opportunities( &s )
-
-			, vec![]
-		);
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![] );
 	}
 
 
@@ -113,12 +98,7 @@ mod tests
 	{
 		let s = "foo\tbar";
 
-		assert_eq!
-		(
-			  Xi{ priority: 0 }.opportunities( &s )
-
-			, vec![ SplitPoint::new( 3, 4, 0 ) ]
-		);
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 4, 0 ) ] );
 	}
 
 
@@ -150,12 +130,37 @@ mod tests
 	{
 		let s = "bin--doo";
 
-		assert_eq!
-		(
-			  Xi{ priority: 0 }.opportunities( &s )
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 5, 5, 0 ) ] );
+	}
 
-			, vec![ SplitPoint::new( 5, 5, 0 ) ]
-		);
+
+	// For now the newline is marked, but not consumed
+	//
+	#[test]
+	fn newline()
+	{
+		let     s       = "bin\ndoo";
+		let mut split   = SplitPoint::new( 4, 4, 0 );
+		split.mandatory = true;
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ split ] );
+	}
+
+
+	// For now the newline is marked, but not consumed
+	//
+	#[test]
+	fn consecutive_newlines()
+	{
+		let s = "bin\n\ndoo";
+
+		let mut split  = SplitPoint::new( 4, 4, 0 );
+		let mut split2 = SplitPoint::new( 5, 5, 0 );
+
+		split .mandatory = true;
+		split2.mandatory = true;
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ split, split2 ] );
 	}
 
 
