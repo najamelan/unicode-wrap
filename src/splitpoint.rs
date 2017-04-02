@@ -33,7 +33,7 @@ impl SplitPoint
 			start    : ByteOffset ( start    ) ,
 			end      : ByteOffset ( end      ) ,
 			priority : WidthOffset( priority ) ,
-			glue     : "".to_string()          ,
+			glue     : "\n".to_string()        ,
 			mandatory: false                   ,
 			enabled  : true                    ,
 			width    : None                    ,
@@ -118,7 +118,7 @@ mod tests
 		assert_eq!( s.start    , ByteOffset ( 1 ) );
 		assert_eq!( s.end      , ByteOffset ( 2 ) );
 		assert_eq!( s.priority , WidthOffset( 3 ) );
-		assert_eq!( s.glue     , "".to_string()   );
+		assert_eq!( s.glue     , "\n".to_string() );
 		assert_eq!( s.mandatory, false            );
 		assert_eq!( s.enabled  , true             );
 	}

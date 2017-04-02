@@ -38,7 +38,7 @@ fn lorem_ipsum(length: usize) -> &'static str {
 fn run( size: usize, b: &mut Bencher, hyphenate: bool )
 {
     let c    = hyphenation_crate::load( Language::Latin ).unwrap();
-    let hyph = Hyphenator{ priority: 0, corpus: &c, glue: "-".to_string() };
+    let hyph = Hyphenator{ priority: 0, corpus: &c, glue: "-\n".to_string() };
     let xi   = Xi{ priority: 0 };
     let text = lorem_ipsum( size );
 
@@ -54,7 +54,7 @@ fn run( size: usize, b: &mut Bencher, hyphenate: bool )
         filters   : vec![]       ,
     };
 
-    b.iter( || w.fill( text ) );
+    b.iter( || w.wrap( text ) );
 }
 
 #[bench] fn lorem_100            ( b: &mut Bencher ) { run( 100, b, false ); }

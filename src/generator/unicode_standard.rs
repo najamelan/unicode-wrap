@@ -18,6 +18,7 @@ impl Generate for Xi
 		let mut result = LineBreakIterator::new( text ).map( |(byte_offset, hard)|
 		{
 			let mut start = byte_offset;
+			let mut glue  = String::with_capacity( 2 );
 
 			// This only works if whitespace are bytes that are never composed in grapheme clusters.
 			// TODO: verify if this holds
@@ -27,9 +28,40 @@ impl Generate for Xi
 				start = i;
 			}
 
+
+			// Recreate the glue for hard breaks and set the start index to before the chars we move to glue. The glue will be set
+			// to the actual line breaking character, so that we don't change existing differences between the existing protocols
+			// and meaning of the different characters.
+			// If conversion needs to be made, filters can manipulate the splitpoints later (eg. to convert between linux and windows line endings).
+			//
+			if hard
+			{
+				if let Some(( i , ch )) = text[ ..byte_offset ].char_indices().rev().nth( 0 )
+				{
+					start = i ;
+					glue.insert( 0, ch );
+
+					if ch == '\n'
+					{
+						if let Some(( i , ch )) = text[ ..i ].char_indices().rev().nth( 0 )
+						{
+							if ch == '\r' // cariage return
+							{
+								start = i;
+								glue.insert( 0, ch );
+							}
+						}
+					}
+				}
+			}
+
+			else { glue = "\n".to_string() }
+
 			if cfg!( debug_assertions ) { println!("break from Xi: {:?}-{:?}", start, byte_offset ) }
 			let mut s = SplitPoint::new( start, byte_offset, self.priority );
 			s.mandatory = hard;
+			s.glue      = glue;
+
 			s
 		})
 
@@ -67,39 +99,27 @@ mod tests
 	use super::*;
 
 	#[test]
-	fn basic()
-	{
-		let s = "foo bar";
+	fn basic() {
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 4, 0 ) ] );
-	}
+		assert_eq!( Xi{ priority: 0 }.opportunities( "foo bar" ), vec![ SplitPoint::new( 3, 4, 0 ) ] ); }
 
 
 	#[test]
-	fn more_spaces()
-	{
-		let s = "foo   bar";
+	fn more_spaces() {
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 6, 0 ) ] );
-	}
+		assert_eq!( Xi{ priority: 0 }.opportunities( "foo   bar" ), vec![ SplitPoint::new( 3, 6, 0 ) ] ); }
 
 
 	#[test]
-	fn no_break_space()
-	{
-		let s = "foo\u{A0}bar";
+	fn no_break_space() {
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![] );
-	}
+		assert_eq!( Xi{ priority: 0 }.opportunities( "foo\u{A0}bar" ), vec![] ); }
 
 
 	#[test]
-	fn tabstop()
-	{
-		let s = "foo\tbar";
+	fn tabstop() {
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 3, 4, 0 ) ] );
-	}
+		assert_eq!( Xi{ priority: 0 }.opportunities( "foo\tbar" ), vec![ SplitPoint::new( 3, 4, 0 ) ] ); }
 
 
 	#[test]
@@ -107,11 +127,9 @@ mod tests
 	{
 		// \u{ad} is Unicode U+00AD SOFT HYPHEN
 		//
-		let s = "co\u{ad}ca-co‧la";
-
 		assert_eq!
 		(
-			  Xi{ priority: 0 }.opportunities( &s )
+			  Xi{ priority: 0 }.opportunities( "co\u{ad}ca-co‧la" )
 
 			, vec!
 			  [
@@ -128,50 +146,141 @@ mod tests
 	#[test]
 	fn hyphen_series()
 	{
-		let s = "bin--doo";
-
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ SplitPoint::new( 5, 5, 0 ) ] );
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin--doo" ), vec![ SplitPoint::new( 5, 5, 0 ) ] );
 	}
 
 
-	// For now the newline is marked, but not consumed
-	//
 	#[test]
 	fn newline()
 	{
-		let     s       = "bin\ndoo";
-		let mut split   = SplitPoint::new( 4, 4, 0 );
+		let mut split   = SplitPoint::new( 3, 4, 0 );
 		split.mandatory = true;
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ split ] );
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\ndoo" ), vec![ split ] );
 	}
 
 
-	// For now the newline is marked, but not consumed
-	//
 	#[test]
-	fn consecutive_newlines()
+	fn vertical_tab()
 	{
-		let s = "bin\n\ndoo";
+		let mut split   = SplitPoint::new( 3, 4, 0 );
 
-		let mut split  = SplitPoint::new( 4, 4, 0 );
-		let mut split2 = SplitPoint::new( 5, 5, 0 );
+		split.mandatory = true;
+		split.glue      = "\u{000B}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{000B}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn form_feed()
+	{
+		let mut split   = SplitPoint::new( 3, 4, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\u{000C}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{000C}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn cariage_return()
+	{
+		let mut split   = SplitPoint::new( 3, 4, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\u{000D}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{000D}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn next_line()
+	{
+		let mut split   = SplitPoint::new( 3, 5, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\u{0085}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{0085}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn line_separator()
+	{
+		let mut split   = SplitPoint::new( 3, 6, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\u{2028}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{2028}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn paragraph_separator()
+	{
+		let mut split   = SplitPoint::new( 3, 6, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\u{2029}".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\u{2029}doo" ), vec![ split ] );
+	}
+
+
+	#[test]
+	fn consecutive_newlines_should_produce_more_than_one_splitpoint()
+	{
+		let mut split  = SplitPoint::new( 3, 4, 0 );
+		let mut split2 = SplitPoint::new( 4, 5, 0 );
 
 		split .mandatory = true;
 		split2.mandatory = true;
 
-		assert_eq!( Xi{ priority: 0 }.opportunities( &s ), vec![ split, split2 ] );
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\n\ndoo" ), vec![ split, split2 ] );
+	}
+
+
+	#[test]
+	fn crlf_should_give_one_splitpoint()
+	{
+		let mut split  = SplitPoint::new( 3, 5, 0 );
+
+		split.mandatory = true;
+		split.glue      = "\r\n".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\r\ndoo" ), vec![ split ] );
+	}
+
+
+	// For now the newline is marked, but not consumed
+	//
+	#[test]
+	fn lfcrlf_shouldnt_eat_first_lf()
+	{
+		let mut split  = SplitPoint::new( 3, 4, 0 );
+		let mut split2 = SplitPoint::new( 4, 6, 0 );
+
+		split .mandatory = true;
+		split2.mandatory = true;
+
+		split .glue      =   "\n".to_string();
+		split2.glue      = "\r\n".to_string();
+
+		assert_eq!( Xi{ priority: 0 }.opportunities( "bin\n\r\ndoo" ), vec![ split, split2 ] );
 	}
 
 
 	// #[test]
 	// fn tabstop2()
 	// {
-	// 	let s = "foo \t bar";
-
 	// 	assert_eq!
 	// 	(
-	// 		  Xi{ priority: 0 }.opportunities( &s )
+	// 		  Xi{ priority: 0 }.opportunities( "foo \t bar" )
 
 	// 		  , vec!
 	// 		    [

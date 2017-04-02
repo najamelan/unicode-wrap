@@ -19,10 +19,11 @@ Concurrency without data races. \
 Zero-cost abstractions.\
 ";
 
+	let mut s;
 	let mut prev_lines = vec![];
 
 	let c       = hyphenation::load( Language::English_US ).unwrap();
-	let hyph    = Hyphenator{ priority: 0, corpus: &c, glue: "-".to_string() };
+	let hyph    = Hyphenator{ priority: 0, corpus: &c, glue: "-\n".to_string() };
 
 	let xi      = Xi{ priority: 0 };
 
@@ -38,7 +39,8 @@ Zero-cost abstractions.\
 	{
 		wrapper.width = width;
 
-		let lines = wrapper.wrap_line( example );
+		    s             = wrapper.wrap( example );
+		let lines: Vec<_> = s.lines().map( |slice| slice.to_string() ).collect();
 
 		if lines != prev_lines
 		{
