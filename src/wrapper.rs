@@ -126,14 +126,14 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			if cfg!( debug_assertions ) { println!("width_offset: {:?}, endl: {:?}, line_width: {:?}", width_offset.0, endl.0, line_width.0 ) }
 
 
-			let mut found: Option< &SplitPoint > = None ;
-			let mut last_score                   = 0    ;
+			let mut found: Option< &SplitPoint > = None             ;
+			let mut last_score                   = WidthOffset( 0 ) ;
 
 			// Figure out the last valid split point for each priority for this line.
 			//
 			for (i, split) in splits[ candidate.. ].iter().enumerate()
 			{
-				if cfg!( debug_assertions ) { println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score() ) }
+				if cfg!( debug_assertions ) { println!( "Considering: start: {:?}, end: {:?} with endl: {:?}, score: {:?}", split.start.0, split.end.0, endl.0, split.score( &self.ruler ) ) }
 
 
 				if split.width.unwrap() <= endl
@@ -147,10 +147,10 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 						break;
 					}
 
-					else if split.score() >= last_score
+					else if split.score( &self.ruler ) >= last_score
 					{
 						found      = Some( split ) ;
-						last_score = split.score() ;
+						last_score = split.score( &self.ruler ) ;
 					}
 
 					else { continue }
@@ -168,7 +168,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			{
 				let split = found.unwrap();
 
-				if cfg!( debug_assertions ) { println!("Found: {:?}, {:?}", split.start, split.end ); }
+				if cfg!( debug_assertions ) { println!( "Found: {:?}, {:?}", split.start, split.end ); }
 
 				width_offset = split.end.to_width( &b2w );
 				cuts.push( split )
