@@ -12,6 +12,9 @@ const NO_BREAK_AFTER: &'static [char] = &
 	'«'
 ];
 
+
+#[ derive( PartialEq, Eq, Clone, Debug ) ]
+//
 pub struct French;
 
 impl Filter for French

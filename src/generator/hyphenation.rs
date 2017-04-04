@@ -3,20 +3,23 @@ use super::*;
 
 use self::Generate;
 
-pub struct Hyphenator<'a>
+
+#[ derive( Clone, Debug ) ]
+//
+pub struct Hyphenator
 {
-	pub priority: usize      ,
-	pub corpus  : &'a Corpus ,
-	pub glue    : String     ,
+	pub priority: usize  ,
+	pub corpus  : Corpus ,
+	pub glue    : String ,
 }
 
 
 
-impl<'a> Generate for Hyphenator<'a>
+impl Generate for Hyphenator
 {
 	fn opportunities( &self, text: &str ) -> Vec< SplitPoint >
 	{
-		let list = text.fulltext_opportunities( self.corpus );
+		let list = text.fulltext_opportunities( &self.corpus );
 
 		let result = list.iter().map( |byte_offset|
 		{
@@ -52,7 +55,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: c }.opportunities( &s )
 
 			, vec![ s1, s2 ]
 		);
@@ -69,7 +72,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: c }.opportunities( &s )
 
 			, vec![ s1, s2 ]
 		);
@@ -86,7 +89,7 @@ mod tests
 
 		assert_eq!
 		(
-			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: &c }.opportunities( &s )
+			  Hyphenator{ priority: 0, glue: "-".to_string(), corpus: c }.opportunities( &s )
 
 			, vec![]
 		);

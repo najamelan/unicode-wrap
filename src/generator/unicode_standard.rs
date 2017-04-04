@@ -4,6 +4,9 @@ use super::*;
 
 use self::Generate;
 
+
+#[ derive( PartialEq, Eq, Clone, Debug ) ]
+//
 pub struct Xi
 {
 	pub priority: usize

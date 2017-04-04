@@ -5,20 +5,20 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::*;
 
 
-pub struct Wrapper<'a, 'b, Ruler>
+pub struct Wrapper<Ruler>
 {
-	width     : usize               ,
-	generators: Vec< &'a Generate > ,
-	filters   : Vec< &'b Filter   > ,
-	ruler     : Ruler               ,
+	width     : usize                ,
+	generators: Vec< Box<Generate> > ,
+	filters   : Vec< Box<Filter>   > ,
+	ruler     : Ruler                ,
 }
 
 
-impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler> where Ruler: TextWidth
+impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 {
-	pub fn new<'c, 'd>( width: usize, generators: Vec< &'c Generate >, filters: Vec< &'d Filter >, ruler: Ruler )
+	pub fn new( width: usize, generators: Vec< Box<Generate> >, filters: Vec< Box<Filter> >, ruler: Ruler )
 
-	-> Result< Wrapper<'c, 'd, Ruler>, &'static str >
+	-> Result< Wrapper<Ruler>, &'static str >
 	{
 		if width == 0 { return Err( "Wrapper.width cannot be zero" ) }
 
@@ -266,9 +266,9 @@ mod tests
 	//
 	fn xi( string: &str, width: usize, prio: usize ) -> Result< String, &'static str >
 	{
-		let gen     = Xi{ priority: prio };
+		let gen     = Box::new( Xi{ priority: prio } );
 
-		let wrapper = try!( Wrapper::new( width, vec![ &gen ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth ) );
 
 		wrapper.wrap( string )
 	}
@@ -404,9 +404,9 @@ mod tests
 	fn hyphenate( string: &str, width: usize ) -> Result< String, &'static str >
 	{
 		let c   = hyphenation_crate::load( Language::English_US ).unwrap();
-		let gen = Hyphenator{ priority: 1, corpus: &c, glue: "-\n".to_string() };
+		let gen = Box::new( Hyphenator{ priority: 1, corpus: c, glue: "-\n".to_string() } );
 
-		let wrapper = try!( Wrapper::new( width, vec![ &gen ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth ) );
 
 		wrapper.wrap( string )
 	}
@@ -434,12 +434,11 @@ mod tests
 	fn combine( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Result< String, &'static str >
 	{
 		let c    = hyphenation_crate::load( Language::English_US ).unwrap();
-		let hyph = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-\n".to_string() };
+		let hyph = Box::new( Hyphenator{ priority: hyph_prio, corpus: c, glue: "-\n".to_string() } );
+		let xi   = Box::new( Xi{ priority: xi_prio } );
 
-		let xi   = Xi{ priority: xi_prio };
-
-		let reverse = try!( Wrapper::new( width, vec![ &xi, &hyph ], Vec::new(), UnicodeWidth ) );
-		let wrapper = try!( Wrapper::new( width, vec![ &hyph, &xi ], Vec::new(), UnicodeWidth ) );
+		let reverse = try!( Wrapper::new( width, vec![ xi.clone(), hyph.clone() ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ hyph      , xi           ], Vec::new(), UnicodeWidth ) );
 
 		let normal   = wrapper.wrap( string );
 		let reversed = reverse.wrap( string );
@@ -484,18 +483,18 @@ mod tests
 	fn combine_filter( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Result< String, &'static str >
 	{
 		let c       = hyphenation_crate::load( Language::English_US ).unwrap();
-		let hyph    = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-\n".to_string() };
+		let hyph    = Box::new( Hyphenator{ priority: hyph_prio, corpus: c, glue: "-\n".to_string() } );
 
-		let xi      = Xi{ priority: xi_prio };
+		let xi      = Box::new( Xi{ priority: xi_prio } );
 
-		let french  = filter::french::French;
+		let french  = Box::new( filter::french::French );
 
 		let wrapper = Wrapper
 		{
-			width     : width              ,
-			generators: vec![ &hyph, &xi ] ,
-			ruler     : UnicodeWidth       ,
-			filters   : vec![ &french ]    ,
+			width     : width                            ,
+			generators: vec![ hyph.clone(), xi.clone() ] ,
+			ruler     : UnicodeWidth                     ,
+			filters   : vec![ french.clone() ]           ,
 		};
 
 		let normal = wrapper.wrap( string );
@@ -503,9 +502,9 @@ mod tests
 		let reverse = Wrapper
 		{
 			width     : width              ,
-			generators: vec![ &xi, &hyph ] ,
+			generators: vec![ xi, hyph ] ,
 			ruler     : UnicodeWidth       ,
-			filters   : vec![ &french ]    ,
+			filters   : vec![ french ]    ,
 		};
 
 		let reversed = reverse.wrap( string );

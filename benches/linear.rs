@@ -38,13 +38,13 @@ fn lorem_ipsum(length: usize) -> &'static str {
 fn run( size: usize, b: &mut Bencher, hyphenate: bool )
 {
     let c    = hyphenation_crate::load( Language::Latin ).unwrap();
-    let hyph = Hyphenator{ priority: 0, corpus: &c, glue: "-\n".to_string() };
-    let xi   = Xi{ priority: 0 };
+    let hyph = Box::new( Hyphenator{ priority: 0, corpus: c, glue: "-\n".to_string() } );
+    let xi   = Box::new( Xi{ priority: 0 } );
     let text = lorem_ipsum( size );
 
-    let mut gen: Vec< &Generate >  = vec![ &xi ];
+    let mut gen: Vec< Box<Generate> > = vec![ xi ];
 
-    if hyphenate { gen.push( &hyph ) }
+    if hyphenate { gen.push( hyph ) }
 
     let w = Wrapper::new( LINE_LENGTH, gen, vec![], UnicodeWidth ).expect( "Width should not be zero" );
 

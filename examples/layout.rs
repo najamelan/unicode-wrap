@@ -22,11 +22,11 @@ Zero-cost abstractions.\
 	let mut prev_lines = vec![];
 
 	let c       = hyphenation::load( Language::English_US ).unwrap();
-	let hyph    = Hyphenator{ priority: 0, corpus: &c, glue: "-\n".to_string() };
+	let hyph    = Box::new( Hyphenator{ priority: 0, corpus: c, glue: "-\n".to_string() } );
 
-	let xi      = Xi{ priority: 0 };
+	let xi      = Box::new( Xi{ priority: 0 } );
 
-	let mut wrapper = Wrapper::new( 15, vec![ &hyph, &xi ], vec![], UnicodeWidth ).unwrap();
+	let mut wrapper = Wrapper::new( 15, vec![ hyph, xi ], vec![], UnicodeWidth ).unwrap();
 
 
 	for width in 15..60
