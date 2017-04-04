@@ -19,7 +19,6 @@ Concurrency without data races. \
 Zero-cost abstractions.\
 ";
 
-	let mut s;
 	let mut prev_lines = vec![];
 
 	let c       = hyphenation::load( Language::English_US ).unwrap();
@@ -27,33 +26,30 @@ Zero-cost abstractions.\
 
 	let xi      = Xi{ priority: 0 };
 
-	let mut wrapper = Wrapper
-	{
-		width     : 15                 ,
-		generators: vec![ &hyph, &xi ] ,
-		ruler     : UnicodeWidth       ,
-		filters   : vec![]             ,
-	};
+	let mut wrapper = Wrapper::new( 15, vec![ &hyph, &xi ], vec![], UnicodeWidth ).unwrap();
+
 
 	for width in 15..60
 	{
-		wrapper.width = width;
+		wrapper.set_width( width ).expect( "need non-zero width" );
 
-		    s             = wrapper.wrap( example );
-		let lines: Vec<_> = s.lines().map( |slice| slice.to_string() ).collect();
-
-		if lines != prev_lines
+		if let Ok( s ) = wrapper.wrap( example )
 		{
-			let title = format!( " Width: {} ", width );
+			let lines: Vec<_> = s.lines().map( |slice| slice.to_string() ).collect();
 
-			println!( ".{:-^1$}.", title, width + 2 );
-
-			for line in &lines
+			if lines != prev_lines
 			{
-				println!( "| {:1$} |", line, width );
-			}
+				let title = format!( " Width: {} ", width );
 
-			prev_lines = lines;
+				println!( ".{:-^1$}.", title, width + 2 );
+
+				for line in &lines
+				{
+					println!( "| {:1$} |", line, width );
+				}
+
+				prev_lines = lines;
+			}
 		}
 	}
 }

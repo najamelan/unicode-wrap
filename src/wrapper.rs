@@ -7,19 +7,50 @@ use super::*;
 
 pub struct Wrapper<'a, 'b, Ruler>
 {
-	pub width     : usize               ,
-	pub generators: Vec< &'a Generate > ,
-	pub filters   : Vec< &'b Filter   > ,
-	pub ruler     : Ruler               ,
+	width     : usize               ,
+	generators: Vec< &'a Generate > ,
+	filters   : Vec< &'b Filter   > ,
+	ruler     : Ruler               ,
 }
 
 
-impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
-
-	where Ruler: TextWidth
+impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler> where Ruler: TextWidth
 {
+	pub fn new<'c, 'd>( width: usize, generators: Vec< &'c Generate >, filters: Vec< &'d Filter >, ruler: Ruler )
 
-	pub fn wrap( &self, line: &str ) -> String
+	-> Result< Wrapper<'c, 'd, Ruler>, &'static str >
+	{
+		if width == 0 { return Err( "Wrapper.width cannot be zero" ) }
+
+		Ok
+		(
+			Wrapper
+			{
+				width     : width     ,
+				generators: generators,
+				filters   : filters   ,
+				ruler     : ruler     ,
+			}
+		)
+	}
+
+
+	pub fn width( &self ) -> usize { self.width }
+
+
+	pub fn set_width( &mut self, width: usize )
+
+	-> Result< (), &'static str >
+	{
+		if width == 0 { return Err( "Wrapper.width cannot be zero" ) }
+
+		self.width = width;
+
+		Ok(())
+	}
+
+
+	pub fn wrap( &self, line: &str ) -> Result< String, &'static str >
 	{
 		// store byte to width conversion, because we will need to calculate our breakpoint in terms of display width.
 		//
@@ -48,7 +79,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 
 		let line_width = width ;
 
-		if line_width.0 <= self.width { return line.to_string() }
+		if line_width.0 <= self.width { return Ok( line.to_string() ) }
 
 		let mut splits: Vec< SplitPoint > = Vec::with_capacity( line_width.0 );
 
@@ -85,7 +116,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 
 		if cfg!( debug_assertions )
 		{
-			println!("Available splits:");
+			println!( "Available splits:" );
 
 			for split in & splits
 			{
@@ -174,11 +205,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 			}
 
 
-			else
-			{
-				panic!("No valid split point found" );
-			}
-
+			else{ return Err( "No valid split point found" ); }
 		}
 
 
@@ -215,7 +242,7 @@ impl<'a, 'b, Ruler> Wrapper<'a, 'b, Ruler>
 
 		out.push_str( &line[ start..line.len() ] );
 
-		out
+		Ok( out )
 
 	}
 }
@@ -237,17 +264,11 @@ mod tests
 	//--------------------
 	// basic xi splitting
 	//
-	fn xi( string: &str, width: usize, prio: usize ) -> String
+	fn xi( string: &str, width: usize, prio: usize ) -> Result< String, &'static str >
 	{
 		let gen     = Xi{ priority: prio };
 
-		let wrapper = Wrapper
-		{
-			width     : width        ,
-			generators: vec![ &gen ] ,
-			ruler     : UnicodeWidth ,
-			filters   : Vec::new()   ,
-		};
+		let wrapper = try!( Wrapper::new( width, vec![ &gen ], Vec::new(), UnicodeWidth ) );
 
 		wrapper.wrap( string )
 	}
@@ -255,23 +276,32 @@ mod tests
 
 
 	#[test]
+	fn width()
+	{
+		let w = Wrapper::new( 5, Vec::new(), Vec::new(), UnicodeWidth ).unwrap();
+		assert_eq!( w.width(), 5 );
+	}
+
+
+
+	#[test]
 	fn basic()
 	{
-		assert_eq!( xi( "ha ha ah", 3, 1 ), "ha\nha\nah" );
+		assert_eq!( xi( "ha ha ah", 3, 1 ), Ok( "ha\nha\nah".to_string() ) );
 	}
 
 
 	#[test]
 	fn basic_zero_priority()
 	{
-		assert_eq!( xi( "ha ha ah", 3, 0 ), "ha\nha\nah" );
+		assert_eq!( xi( "ha ha ah", 3, 0 ), Ok( "ha\nha\nah".to_string() ) );
 	}
 
 
 	#[test]
 	fn basic_high_priority()
 	{
-		assert_eq!( xi( "ha ha ah", 3, 99999 ), "ha\nha\nah" );
+		assert_eq!( xi( "ha ha ah", 3, 99999 ), Ok( "ha\nha\nah".to_string() ) );
 	}
 
 
@@ -279,7 +309,7 @@ mod tests
 	#[test]
 	fn consecutive_spaces()
 	{
-		assert_eq!( xi( "ha ha       ah", 3, 1 ), "ha\nha\nah" );
+		assert_eq!( xi( "ha ha       ah", 3, 1 ), Ok( "ha\nha\nah".to_string() ) );
 	}
 
 
@@ -287,7 +317,7 @@ mod tests
 	#[test]
 	fn consecutive_spaces_and_tabs()
 	{
-		assert_eq!( xi( "ha ha   \t   ah", 3, 1 ), "ha\nha\nah" );
+		assert_eq!( xi( "ha ha   \t   ah", 3, 1 ), Ok( "ha\nha\nah".to_string() ) );
 	}
 
 
@@ -295,94 +325,88 @@ mod tests
 	#[test]
 	fn nbsp()
 	{
-		assert_eq!( xi( "foo b\u{A0}r baz", 6, 1 ), "foo\nb\u{A0}r\nbaz" );
+		assert_eq!( xi( "foo b\u{A0}r baz", 6, 1 ), Ok( "foo\nb\u{A0}r\nbaz".to_string() ) );
 	}
 
 
 	#[test]
 	fn dont_split_every_space()
 	{
-		assert_eq!( xi( "foo bar baz fiend", 9, 1 ), "foo bar\nbaz fiend" );
+		assert_eq!( xi( "foo bar baz fiend", 9, 1 ), Ok( "foo bar\nbaz fiend".to_string() ) );
 	}
 
 
 	#[test]
 	fn width_zero()
 	{
-		#![should_panic]
-		xi( "foo bar baz", 0, 1 );
+		assert_eq!( xi( "foo bar baz", 0, 1 ), Err( "Wrapper.width cannot be zero" ) );
 	}
 
 
 	#[test]
 	fn whitespace_should_not_be_squeezed()
 	{
-		assert_eq!( xi( "foo \t a bar", 7, 1 ), "foo \t a\nbar" );
+		assert_eq!( xi( "foo \t a bar", 7, 1 ), Ok( "foo \t a\nbar".to_string() ) );
 	}
 
 
 	#[test]
 	fn whitespace_should_not_be_trimmed_left_on_first_line()
 	{
-		assert_eq!( xi( " \tfoo \t  bar  ", 4, 1 ), " \tfoo\nbar\n  " );
+		assert_eq!( xi( " \tfoo \t  bar  ", 4, 1 ), Ok( " \tfoo\nbar\n  ".to_string() ) );
 	}
 
 
 	#[test]
 	fn leadingspaces_blocking_split()
 	{
-		assert_eq!( xi( " a b c", 1, 1 ), "a\nb\nc" );
+		assert_eq!( xi( " a b c", 1, 1 ), Ok( "a\nb\nc".to_string() ) );
 	}
 
 
 	#[test]
 	fn whitespace_should_be_trimmed_on_every_line_yet_no_empty_strings_should_exist_in_output()
 	{
-		assert_eq!( xi( "foo   ssss bars", 4, 1 ), "foo\nssss\nbars" );
+		assert_eq!( xi( "foo   ssss bars", 4, 1 ), Ok( "foo\nssss\nbars".to_string() ) );
 	}
 
-	#[test] #[should_panic]
+
+	#[test]
 	fn dont_break_before_punctuation()
 	{
-		xi( "a ! b : c ? d", 2, 0 );
+		assert_eq!( xi( "a ! b : c ? d", 2, 0 ), Err( "No valid split point found" ) );
 	}
 
 
 	#[test]
 	fn hyphens()
 	{
-		assert_eq!( xi( "co\u{ad}ca-co‧la", 3, 1 ), "co\u{ad}\nca-\nco‧\nla" );
+		assert_eq!( xi( "co\u{ad}ca-co‧la", 3, 1 ), Ok( "co\u{ad}\nca-\nco‧\nla".to_string() ) );
 	}
 
 
 	#[test]
 	fn newlines_should_not_be_dropped()
 	{
-		assert_eq!( xi( "co\n\n\nla", 3, 1 ), "co\n\n\nla" );
+		assert_eq!( xi( "co\n\n\nla", 3, 1 ), Ok( "co\n\n\nla".to_string() ) );
 	}
 
 
 	#[test]
 	fn leading_and_trailing_newlines_should_not_be_dropped()
 	{
-		assert_eq!( xi( "\ncola\n", 4, 1 ), "\ncola\n" );
+		assert_eq!( xi( "\ncola\n", 4, 1 ), Ok( "\ncola\n".to_string() ) );
 	}
 
 	//-------------
 	// Hyphenation
 	//
-	fn hyphenate( string: &str, width: usize ) -> String
+	fn hyphenate( string: &str, width: usize ) -> Result< String, &'static str >
 	{
 		let c   = hyphenation_crate::load( Language::English_US ).unwrap();
 		let gen = Hyphenator{ priority: 1, corpus: &c, glue: "-\n".to_string() };
 
-		let wrapper = Wrapper
-		{
-			width     : width        ,
-			generators: vec![ &gen ] ,
-			ruler     : UnicodeWidth ,
-			filters   : Vec::new()   ,
-		};
+		let wrapper = try!( Wrapper::new( width, vec![ &gen ], Vec::new(), UnicodeWidth ) );
 
 		wrapper.wrap( string )
 	}
@@ -391,47 +415,33 @@ mod tests
 	#[test]
 	fn hyphenation()
 	{
-		assert_eq!( hyphenate( "hyphenation", 7 ), "hyphen-\nation"    );
-		assert_eq!( hyphenate( "hyphenation", 6 ), "hy-\nphen-\nation" );
-		assert_eq!( hyphenate( "hyphenation", 5 ), "hy-\nphen-\nation" );
+		assert_eq!( hyphenate( "hyphenation", 7 ), Ok( "hyphen-\nation"   .to_string() ) );
+		assert_eq!( hyphenate( "hyphenation", 6 ), Ok( "hy-\nphen-\nation".to_string() ) );
+		assert_eq!( hyphenate( "hyphenation", 5 ), Ok( "hy-\nphen-\nation".to_string() ) );
 	}
 
 
-	#[test] #[should_panic]
+	#[test]
 	fn too_short()
 	{
-		hyphenate( "hyphenation", 4 );
+		assert_eq!( hyphenate( "hyphenation", 4 ), Err( "No valid split point found" ) );
 	}
 
 
 	//----------------------
 	// Combining Generators
 	//
-	fn combine( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> String
+	fn combine( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Result< String, &'static str >
 	{
 		let c    = hyphenation_crate::load( Language::English_US ).unwrap();
 		let hyph = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-\n".to_string() };
 
 		let xi   = Xi{ priority: xi_prio };
 
-		let wrapper = Wrapper
-		{
-			width     : width              ,
-			generators: vec![ &hyph, &xi ] ,
-			ruler     : UnicodeWidth       ,
-			filters   : Vec::new()         ,
-		};
+		let reverse = try!( Wrapper::new( width, vec![ &xi, &hyph ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ &hyph, &xi ], Vec::new(), UnicodeWidth ) );
 
-		let normal = wrapper.wrap( string );
-
-		let reverse = Wrapper
-		{
-			width     : width              ,
-			generators: vec![ &xi, &hyph ] ,
-			ruler     : UnicodeWidth       ,
-			filters   : Vec::new()         ,
-		};
-
+		let normal   = wrapper.wrap( string );
 		let reversed = reverse.wrap( string );
 
 		assert_eq!( normal, reversed );
@@ -439,18 +449,19 @@ mod tests
 		normal
 	}
 
+
 	#[test]
 	fn combine_generators_basic()
 	{
-		assert_eq!( combine( "hyphenation is key", 7, 0, 0 ), "hyphen-\nation\nis key" );
+		assert_eq!( combine( "hyphenation is key", 7, 0, 0 ), Ok( "hyphen-\nation\nis key".to_string() ) );
 	}
 
 	#[test]
 	fn combine_priority()
 	{
-		assert_eq!( combine( "the hyphenation is key", 7, 0, 0 ), "the hy-\nphen-\nation\nis key" );
-		assert_eq!( combine( "the hyphenation is key", 7, 0, 3 ), "the hy-\nphen-\nation\nis key" );
-		assert_eq!( combine( "the hyphenation is key", 7, 0, 4 ), "the\nhyphen-\nation\nis key" );
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 0 ), Ok( "the hy-\nphen-\nation\nis key".to_string() ) );
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 3 ), Ok( "the hy-\nphen-\nation\nis key".to_string() ) );
+		assert_eq!( combine( "the hyphenation is key", 7, 0, 4 ), Ok( "the\nhyphen-\nation\nis key".to_string() ) );
 	}
 
 // 	#[test]
@@ -470,7 +481,7 @@ mod tests
 	//---------------------------------
 	// Combining Generators and filters
 	//
-	fn combine_filter( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> String
+	fn combine_filter( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Result< String, &'static str >
 	{
 		let c       = hyphenation_crate::load( Language::English_US ).unwrap();
 		let hyph    = Hyphenator{ priority: hyph_prio, corpus: &c, glue: "-\n".to_string() };
@@ -507,8 +518,8 @@ mod tests
 	#[test]
 	fn married_with_filters()
 	{
-		assert_eq!( combine       ( "hyphenation « is k »", 7, 0, 0 ), "hyphen-\nation «\nis k »"  );
-		assert_eq!( combine_filter( "hyphenation « is k »", 7, 0, 0 ), "hyphen-\nation\n« is\nk »" );
+		assert_eq!( combine       ( "hyphenation « is k »", 7, 0, 0 ), Ok( "hyphen-\nation «\nis k »" .to_string() ) );
+		assert_eq!( combine_filter( "hyphenation « is k »", 7, 0, 0 ), Ok( "hyphen-\nation\n« is\nk »".to_string() ) );
 	}
 
 

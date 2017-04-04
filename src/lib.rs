@@ -53,6 +53,14 @@
 //
 // Naja Melan
 
+/**
+ * TODO:
+ *
+ * - allow emergency break instead of just panicking
+ * - since priority in a simple greedy algorithm might produce an extra line by not hyphenating as far as possible, and with the
+ *   need of hyphenating anyway on the next line, make sure to add a warning to the docs.
+ **/
+
 
 extern crate hyphenation          as hyphenation_crate  ;
 extern crate unicode_width        as unicode_width_crate;

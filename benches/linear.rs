@@ -42,17 +42,11 @@ fn run( size: usize, b: &mut Bencher, hyphenate: bool )
     let xi   = Xi{ priority: 0 };
     let text = lorem_ipsum( size );
 
-    let mut vec: Vec< &Generate >  = vec![ &xi ];
+    let mut gen: Vec< &Generate >  = vec![ &xi ];
 
-    if hyphenate { vec.push( &hyph ) }
+    if hyphenate { gen.push( &hyph ) }
 
-    let w = Wrapper
-    {
-        width     : LINE_LENGTH  ,
-        generators: vec          ,
-        ruler     : UnicodeWidth ,
-        filters   : vec![]       ,
-    };
+    let w = Wrapper::new( LINE_LENGTH, gen, vec![], UnicodeWidth ).expect( "Width should not be zero" );
 
     b.iter( || w.wrap( text ) );
 }
