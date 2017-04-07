@@ -11,12 +11,14 @@ pub struct Wrapper<Ruler>
 	generators: Vec< Box<Generate> > ,
 	filters   : Vec< Box<Filter>   > ,
 	ruler     : Ruler                ,
+	break_word: bool                 , // Whether to break a line even if no split point has been found.
+	glue      : String               , // What linebreak we should use if we have to create new split points for break_word
 }
 
 
 impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 {
-	pub fn new( width: usize, generators: Vec< Box<Generate> >, filters: Vec< Box<Filter> >, ruler: Ruler )
+	pub fn new( width: usize, generators: Vec< Box<Generate> >, filters: Vec< Box<Filter> >, ruler: Ruler, break_word: bool )
 
 	-> Result< Wrapper<Ruler>, &'static str >
 	{
@@ -26,10 +28,12 @@ impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 		(
 			Wrapper
 			{
-				width     : width     ,
-				generators: generators,
-				filters   : filters   ,
-				ruler     : ruler     ,
+				width     : width            ,
+				generators: generators       ,
+				filters   : filters          ,
+				ruler     : ruler            ,
+				break_word: break_word       ,
+				glue      : "\n".to_string() ,
 			}
 		)
 	}
@@ -140,7 +144,8 @@ impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 		// The actual split points that will be used to produce the return value.
 		// We probably won't be able to cut at ideal widths, so we might need an extra line, so plus one.
 		//
-		let mut cuts: Vec< &SplitPoint > = Vec::with_capacity( line_width.0 / self.width + 1 );
+		let mut cuts       : Vec< &SplitPoint > = Vec::with_capacity( line_width.0 / self.width + 1 );
+		let mut extra_splits: Vec<  SplitPoint > = Vec::with_capacity( line_width.0 / self.width + 1 );
 
 
 		loop
@@ -205,7 +210,27 @@ impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 			}
 
 
-			else{ return Err( "No valid split point found" ); }
+			// We found none, but we can cut off words if we have to
+			// I don't like this implementation. It greatly complexifies the code compared to before break_word.
+			// However I haven't found any way of expressing this in rust.
+			// Another option would be to copy SplitPoints and letting cuts have their own copy. That would keep code clean.
+			// However that means extra copying instead of just keeping a reference.
+			//
+			else if self.break_word
+			{
+				let offset = endl.to_bytes( &w2b );
+				let mut split = SplitPoint::new( offset.0, offset.0, 0 );
+				split.width = Some( endl + self.ruler.measure( &self.glue ) );
+
+				width_offset = endl;
+				extra_splits.push( split );
+			}
+
+
+			else
+			{
+				return Err( "No valid split point found" );
+			}
 		}
 
 
@@ -219,11 +244,42 @@ impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 		}
 
 
-		let mut out       = String::with_capacity( line.len() + cuts.len() * 2 );
-		let mut start     = 0;
+		let mut out   = String::with_capacity( line.len() + cuts.len() * 2 );
+		let mut start = 0;
 
-		for cut in cuts
+		let mut c = 0;
+		let mut e = 0;
+
+
+		loop
 		{
+			let cut;
+
+			if let Some( c_candidate ) = cuts.get( c )
+			{
+				if let Some( e_candidate ) = extra_splits.get( e ) {
+
+					cut = if c_candidate.start < e_candidate.start { c += 1; c_candidate } else { e += 1; e_candidate }; }
+
+
+				else
+				{
+					c += 1;
+					cut = *c_candidate;
+				}
+			}
+
+
+			else if let Some( e_candidate ) = extra_splits.get( e )
+			{
+				e += 1;
+				cut = e_candidate;
+			}
+
+
+			else { break }
+
+
 			// We should never try to cut at the end of the string, but it happens.
 			// After some time, this can be commented out.
 			//
@@ -239,6 +295,7 @@ impl<Ruler> Wrapper<Ruler> where Ruler: TextWidth
 
 			start = cut.end.0;
 		}
+
 
 		out.push_str( &line[ start..line.len() ] );
 
@@ -268,7 +325,7 @@ mod tests
 	{
 		let gen     = Box::new( Xi{ priority: prio } );
 
-		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth, false ) );
 
 		wrapper.wrap( string )
 	}
@@ -278,7 +335,7 @@ mod tests
 	#[test]
 	fn width()
 	{
-		let w = Wrapper::new( 5, Vec::new(), Vec::new(), UnicodeWidth ).unwrap();
+		let w = Wrapper::new( 5, Vec::new(), Vec::new(), UnicodeWidth, false ).unwrap();
 		assert_eq!( w.width(), 5 );
 	}
 
@@ -406,7 +463,7 @@ mod tests
 		let c   = hyphenation_crate::load( Language::English_US ).unwrap();
 		let gen = Box::new( Hyphenator{ priority: 1, corpus: c, glue: "-\n".to_string() } );
 
-		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth ) );
+		let wrapper = try!( Wrapper::new( width, vec![ gen ], Vec::new(), UnicodeWidth, false ) );
 
 		wrapper.wrap( string )
 	}
@@ -437,8 +494,8 @@ mod tests
 		let hyph = Box::new( Hyphenator{ priority: hyph_prio, corpus: c, glue: "-\n".to_string() } );
 		let xi   = Box::new( Xi{ priority: xi_prio } );
 
-		let reverse = try!( Wrapper::new( width, vec![ xi.clone(), hyph.clone() ], Vec::new(), UnicodeWidth ) );
-		let wrapper = try!( Wrapper::new( width, vec![ hyph      , xi           ], Vec::new(), UnicodeWidth ) );
+		let reverse = try!( Wrapper::new( width, vec![ xi.clone(), hyph.clone() ], Vec::new(), UnicodeWidth, false ) );
+		let wrapper = try!( Wrapper::new( width, vec![ hyph      , xi           ], Vec::new(), UnicodeWidth, false ) );
 
 		let normal   = wrapper.wrap( string );
 		let reversed = reverse.wrap( string );
@@ -489,24 +546,10 @@ mod tests
 
 		let french  = Box::new( filter::french::French );
 
-		let wrapper = Wrapper
-		{
-			width     : width                            ,
-			generators: vec![ hyph.clone(), xi.clone() ] ,
-			ruler     : UnicodeWidth                     ,
-			filters   : vec![ french.clone() ]           ,
-		};
+		let wrapper = try!( Wrapper::new( width, vec![ hyph.clone(), xi.clone() ], vec![ french.clone() ], UnicodeWidth, false ) );
+		let reverse = try!( Wrapper::new( width, vec![ xi          , hyph       ], vec![ french         ], UnicodeWidth, false ) );
 
-		let normal = wrapper.wrap( string );
-
-		let reverse = Wrapper
-		{
-			width     : width              ,
-			generators: vec![ xi, hyph ] ,
-			ruler     : UnicodeWidth       ,
-			filters   : vec![ french ]    ,
-		};
-
+		let normal   = wrapper.wrap( string );
 		let reversed = reverse.wrap( string );
 
 		assert_eq!( normal, reversed );
@@ -520,6 +563,52 @@ mod tests
 		assert_eq!( combine       ( "hyphenation « is k »", 7, 0, 0 ), Ok( "hyphen-\nation «\nis k »" .to_string() ) );
 		assert_eq!( combine_filter( "hyphenation « is k »", 7, 0, 0 ), Ok( "hyphen-\nation\n« is\nk »".to_string() ) );
 	}
+
+
+	//----------------------
+	// break_word Generators
+	//
+	fn breaks( string: &str, width: usize, hyph_prio: usize, xi_prio: usize ) -> Result< String, &'static str >
+	{
+		let c    = hyphenation_crate::load( Language::English_US ).unwrap();
+		let hyph = Box::new( Hyphenator{ priority: hyph_prio, corpus: c, glue: "-\n".to_string() } );
+		let xi   = Box::new( Xi{ priority: xi_prio } );
+
+		let wrapper = try!( Wrapper::new( width, vec![ hyph, xi ], Vec::new(), UnicodeWidth, true ) );
+
+		wrapper.wrap( string )
+	}
+
+
+	#[test]
+	fn simple_break()
+	{
+		assert_eq!( combine( "ab", 1, 0, 0 ), Err( "No valid split point found" ) );
+		assert_eq!( breaks ( "ab", 1, 0, 0 ), Ok ( "a\nb" .to_string()          ) );
+
+		assert_eq!( combine( "abc", 2, 0, 0 ), Err( "No valid split point found" ) );
+		assert_eq!( breaks ( "abc", 2, 0, 0 ), Ok ( "ab\nc" .to_string()         ) );
+	}
+
+
+	#[test]
+	fn combine_break()
+	{
+		assert_eq!( combine( "ab cd", 1, 0, 0 ), Err( "No valid split point found" ) );
+		assert_eq!( breaks ( "ab cd", 1, 0, 0 ), Ok ( "a\nb\nc\nd" .to_string()    ) );
+
+		assert_eq!( combine( "abcd eff", 3, 0, 0 ), Err( "No valid split point found" ) );
+		assert_eq!( breaks ( "abcd eff", 3, 0, 0 ), Ok ( "abc\nd\neff" .to_string()   ) );
+	}
+
+
+	#[test]
+	fn combine_hyphenation()
+	{
+		assert_eq!( combine( "calendula", 3, 0, 0 ), Err( "No valid split point found"   ) );
+		assert_eq!( breaks ( "calendula", 3, 0, 0 ), Ok ( "cal\nen-\ndul\na".to_string() ) );
+	}
+
 
 
 	// fn lorem_ipsum(length: usize) -> &'static str {
@@ -548,7 +637,7 @@ mod tests
 	//     {
 	//         width     : 60                 ,
 	//         generators: vec![ &hyph, &xi ] ,
-	//         ruler     : UnicodeWidth       ,
+	//         ruler     : UnicodeWidth, false       ,
 	//         filters   : vec![]             ,
 	//     };
 

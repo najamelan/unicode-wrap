@@ -26,7 +26,7 @@ Zero-cost abstractions.\
 
 	let xi      = Box::new( Xi{ priority: 0 } );
 
-	let mut wrapper = Wrapper::new( 15, vec![ hyph, xi ], vec![], UnicodeWidth ).unwrap();
+	let mut wrapper = Wrapper::new( 15, vec![ hyph, xi ], vec![], UnicodeWidth, false ).unwrap();
 
 
 	for width in 15..60

@@ -46,7 +46,7 @@ fn run( size: usize, b: &mut Bencher, hyphenate: bool )
 
     if hyphenate { gen.push( hyph ) }
 
-    let w = Wrapper::new( LINE_LENGTH, gen, vec![], UnicodeWidth ).expect( "Width should not be zero" );
+    let w = Wrapper::new( LINE_LENGTH, gen, vec![], UnicodeWidth, false ).expect( "Width should not be zero" );
 
     b.iter( || w.wrap( text ) );
 }
